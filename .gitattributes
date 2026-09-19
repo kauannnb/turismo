@@ -1,0 +1,5 @@
+* text=auto
+
+# Arquivos que rodam no Linux precisam de LF mesmo quando editados no Windows.
+*.sh text eol=lf
+deploy/nginx-turismo.conf text eol=lf
