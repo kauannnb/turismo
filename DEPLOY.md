@@ -1,4 +1,4 @@
-# Colocando o site no ar — VPS da Hostinger, passo a passo
+﻿# Colocando o site no ar — VPS da Hostinger, passo a passo
 
 Guia escrito pra quem **nunca mexeu com VPS**. Cada passo diz o que você digita, o que deve acontecer, e o que fazer se não acontecer.
 
@@ -40,7 +40,7 @@ Ao longo do guia, troque:
 
 - `IP_DA_VPS` → o IP real
 - `SENHA_DO_BANCO` → a senha que você criou pro banco
-- `lohan` → o nome de usuário que você quiser (pode manter `lohan`)
+- `madruga` → o nome de usuário que você quiser (pode manter `madruga`)
 
 ---
 
@@ -49,7 +49,7 @@ Ao longo do guia, troque:
 Se a VPS ainda não foi configurada (aparece como "Em configuração" ou pede pra escolher um sistema):
 
 1. Entre em [hpanel.hostinger.com](https://hpanel.hostinger.com) → menu **VPS** → sua VPS.
-2. Em **sistema operacional**, escolha **Ubuntu 24.04 LTS** (só o Ubuntu limpo — **não** escolha painéis como CyberPanel, Plesk ou CloudPanel, eles instalam um monte de coisa que vai brigar com o nosso nginx).
+2. Em **sistema operacional**, escolha **Ubuntu 26.04 LTS** (só o Ubuntu limpo — **não** escolha painéis como CyberPanel, Plesk ou CloudPanel, eles instalam um monte de coisa que vai brigar com o nosso nginx).
 3. Defina a **senha de root**. Anote.
 4. Espere terminar de provisionar (uns minutos) e anote o **IP**.
 
@@ -86,7 +86,7 @@ Deu certo se o prompt virar algo como `root@srv123456:~#`.
 `root` pode tudo, inclusive destruir o sistema com um comando errado. Boa prática é ter um usuário normal e pedir permissão quando precisar. Ainda como root:
 
 ```bash
-adduser lohan
+adduser madruga
 ```
 
 Ele vai pedir uma senha (duas vezes) e depois nome completo, telefone etc. — **pode deixar tudo em branco** dando Enter, e confirmar com `Y` no fim.
@@ -94,7 +94,7 @@ Ele vai pedir uma senha (duas vezes) e depois nome completo, telefone etc. — *
 Agora dê a esse usuário o direito de usar `sudo` (que é o "só desta vez, como administrador"):
 
 ```bash
-usermod -aG sudo lohan
+usermod -aG sudo madruga
 ```
 
 Saia e entre de novo, agora como o novo usuário:
@@ -104,12 +104,12 @@ exit
 ```
 
 ```powershell
-ssh lohan@IP_DA_VPS
+ssh madruga@IP_DA_VPS
 ```
 
-O prompt agora deve ser `lohan@srv123456:~$` — repare que o `#` do root virou `$`.
+O prompt agora deve ser `madruga@srv123456:~$` — repare que o `#` do root virou `$`.
 
-**Daqui pra frente, todos os comandos são como `lohan`.** Quando um comando começa com `sudo`, o terminal vai pedir **a senha do lohan** (não a de root). Ele pede uma vez e guarda por alguns minutos.
+**Daqui pra frente, todos os comandos são como `madruga`.** Quando um comando começa com `sudo`, o terminal vai pedir **a senha do madruga** (não a de root). Ele pede uma vez e guarda por alguns minutos.
 
 ## Parte 4 — Instalar os programas
 
@@ -229,7 +229,7 @@ EXIT;
 
 ```bash
 sudo mkdir -p /var/www /var/log/turismo
-sudo chown -R lohan:lohan /var/www /var/log/turismo
+sudo chown -R madruga:madruga /var/www /var/log/turismo
 git clone https://github.com/kauannnb/turismo.git /var/www/turismo
 cd /var/www/turismo
 ```
