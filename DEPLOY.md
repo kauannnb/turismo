@@ -53,7 +53,7 @@ Se a VPS ainda não foi configurada (aparece como "Em configuração" ou pede pr
 3. Defina a **senha de root**. Anote.
 4. Espere terminar de provisionar (uns minutos) e anote o **IP**.
 
-> **Quanta RAM tem seu plano?** Se for **1 GB**, o build do Next não cabe na memória e falha. Tem solução (swap), está na Parte 4. Se for 2 GB ou mais, relaxa.
+> **A VPS deste projeto** é o plano de 2 vCPU, 8 GB de RAM, 100 GB de disco e 8 TB de banda. Com 8 GB o build do Next roda folgado — **pule a seção de swap** no fim da Parte 4, ela só existe pra quem estiver em plano de 1 GB.
 
 ## Parte 2 — Conectar na VPS pela primeira vez
 
@@ -148,9 +148,11 @@ E o PM2:
 sudo npm install -g pm2
 ```
 
-### Se a sua VPS tem 1 GB de RAM, faça isto agora
+### Swap — só se a VPS tiver 1 GB de RAM
 
-O `next build` consome bastante memória e o processo é morto no meio (você veria um erro seco, tipo `Killed`). Swap é memória emprestada do disco — mais lenta, mas resolve:
+**Na VPS deste projeto (8 GB), pule esta seção e vá pra Parte 5.**
+
+Fica documentado pro caso de um servidor menor. Com 1 GB, o `next build` consome mais memória do que existe e o processo é morto no meio — você veria um erro seco, tipo `Killed`, sem mais explicação. Swap é memória emprestada do disco, mais lenta, mas resolve:
 
 ```bash
 sudo fallocate -l 2G /swapfile
@@ -249,7 +251,7 @@ Deixe o arquivo assim (trocando o que está em maiúsculas):
 
 ```
 DATABASE_URL="mysql://turismo:SENHA_DO_BANCO@localhost:3306/turismo"
-NEXT_PUBLIC_WHATSAPP_NUMBER="5511987654321"
+NEXT_PUBLIC_WHATSAPP_NUMBER="NUMERO_DO_WHATSAPP"
 NEXT_PUBLIC_SITE_NAME="Rota Viva Turismo"
 NEXT_PUBLIC_SITE_URL="http://IP_DA_VPS"
 ```
@@ -258,7 +260,7 @@ NEXT_PUBLIC_SITE_URL="http://IP_DA_VPS"
 
 Duas coisas críticas neste arquivo:
 
-1. **O número do WhatsApp.** O valor que está no repo (`5511999999999`) é inventado. Se subir assim, **todo botão de reserva do site manda o cliente pra um número que não é seu.** Formato: 55 + DDD + número, só dígitos, sem espaço, traço ou parênteses.
+1. **O número do WhatsApp.** O valor do `.env.example` (`5511999999999`) é inventado. Se subir assim, **todo botão de reserva do site manda o cliente pra um número que não é seu.** O número correto já está configurado no `.env` da máquina de desenvolvimento — copie de lá. Formato: `55` + DDD + número, só dígitos, sem espaço, traço, `+` ou parênteses.
 2. **Tudo que começa com `NEXT_PUBLIC_` é gravado dentro do site no momento do build.** Não é lido enquanto o site roda. Ou seja: mudou qualquer um desses depois, tem que buildar de novo. Reiniciar o PM2 não adianta.
 
 ## Parte 9 — Instalar, migrar e construir o site
