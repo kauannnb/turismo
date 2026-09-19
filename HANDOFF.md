@@ -44,7 +44,8 @@ Referências analisadas (o que aproveitar de cada uma):
 1. Painel admin (`/admin`): login (tabela `User` já existe, usar bcrypt + cookie de sessão), CRUD de destinos, pacotes, datas, fotos (upload local em `public/uploads` ou similar).
 2. Conteúdo real: trocar `NEXT_PUBLIC_WHATSAPP_NUMBER` (hoje é o placeholder `5511999999999`), textos institucionais do rodapé, Cadastur/CNPJ e fotos próprias no lugar das do Unsplash.
 3. Mais de um pacote por destino no seed — hoje é 1 por destino, então o bloco "Outros pacotes para…" nunca aparece com os dados de exemplo (o bloco em si já foi testado e funciona).
-4. Deploy na VPS Hostinger: Node + MariaDB + PM2 + nginx. Definir `NEXT_PUBLIC_SITE_URL` com o domínio real — ele é usado no link que vai na mensagem do WhatsApp.
+4. Deploy na VPS Hostinger: **passo a passo completo em [`DEPLOY.md`](DEPLOY.md)** (nginx + PM2 + MariaDB). Os arquivos já estão no repo: `ecosystem.config.cjs`, `deploy/nginx-turismo.conf`, `deploy/deploy.sh`. `npm run build` e `npm start` já foram validados localmente em 2026-09-19.
+5. A home (`/`) é gerada estática no build — quando o admin existir, colocar `export const revalidate = 300` em `src/app/page.tsx`, senão pacote novo não aparece nela. Detalhes no `DEPLOY.md`.
 
 ## Como rodar em uma máquina nova
 
