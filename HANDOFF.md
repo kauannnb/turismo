@@ -35,14 +35,16 @@ Referências analisadas (o que aproveitar de cada uma):
 - `src/lib/prisma.ts` (singleton), `src/lib/queries.ts` (todas as consultas), `src/lib/format.ts` (preço/data/duração pt-BR), `src/lib/whatsapp.ts` (monta link wa.me).
 - Componentes em `src/components/`: `site-header`, `site-footer`, `destination-search` (client, autocomplete estilo Civitatis), `package-card`, `destination-card`, `whatsapp-button`, `package-filters` (client, filtros via searchParams).
 - Páginas: `src/app/page.tsx` (Home completa), `src/app/destinos/page.tsx` (todos os destinos + busca `?q=`), `src/app/destinos/[slug]/page.tsx` (pacotes do destino com filtros de categoria / mês / preço / ordenação).
+- `src/app/pacotes/[slug]/page.tsx` — página do pacote: hero com breadcrumb, galeria, descrição, incluso / não incluso, roteiro dia a dia (timeline), datas de saída com vagas e preço por data, depoimentos, pacotes relacionados e card lateral sticky com o botão WhatsApp.
+- `src/app/not-found.tsx` (404 com atalhos para `/destinos` e `/`).
 - Tema em `src/app/globals.css`: brand teal (`#0f766e`), accent laranja (`#f97316`), tokens via `@theme inline`.
+- **Projeto já roda de verdade** (2026-09-19): `npm run dev` sobe limpo, todas as rotas respondem 200, 404 funciona, `tsc --noEmit` e `eslint` passam sem erro.
 
 ### Falta (próximos passos, nesta ordem)
-1. **`src/app/pacotes/[slug]/page.tsx`** — página do pacote: galeria, descrição, o que está incluso / não incluso, roteiro dia a dia, datas de saída com vagas, preço, botão WhatsApp (usar `packageInquiryMessage` de `src/lib/whatsapp.ts`), pacotes relacionados (`getRelatedPackages`). Todas as queries já existem em `src/lib/queries.ts` (`getPackageBySlug`).
-2. `src/app/not-found.tsx`.
-3. **Rodar `npm run dev` e testar no navegador** — o servidor ainda NÃO foi iniciado nenhuma vez, então pode haver erros de compilação/tipagem a corrigir. Ver `AGENTS.md` (Next 16 tem mudanças: `params`/`searchParams` são Promise, `PageProps<'/rota'>` é helper global, `proxy.ts` no lugar de `middleware.ts`, Turbopack padrão).
-4. Painel admin (`/admin`): login (tabela `User` já existe, usar bcrypt + cookie de sessão), CRUD de destinos, pacotes, datas, fotos (upload local em `public/uploads` ou similar).
-5. Deploy na VPS Hostinger: Node + MariaDB + PM2 + nginx.
+1. Painel admin (`/admin`): login (tabela `User` já existe, usar bcrypt + cookie de sessão), CRUD de destinos, pacotes, datas, fotos (upload local em `public/uploads` ou similar).
+2. Conteúdo real: trocar `NEXT_PUBLIC_WHATSAPP_NUMBER` (hoje é o placeholder `5511999999999`), textos institucionais do rodapé, Cadastur/CNPJ e fotos próprias no lugar das do Unsplash.
+3. Mais de um pacote por destino no seed — hoje é 1 por destino, então o bloco "Outros pacotes para…" nunca aparece com os dados de exemplo (o bloco em si já foi testado e funciona).
+4. Deploy na VPS Hostinger: Node + MariaDB + PM2 + nginx. Definir `NEXT_PUBLIC_SITE_URL` com o domínio real — ele é usado no link que vai na mensagem do WhatsApp.
 
 ## Como rodar em uma máquina nova
 
@@ -52,7 +54,7 @@ Pré-requisitos: Node 20.9+ (usado 24 LTS), MariaDB ou MySQL rodando localmente.
 git clone <repo> turismo
 cd turismo
 npm install
-copy .env.example .env      # editar DATABASE_URL, NEXT_PUBLIC_WHATSAPP_NUMBER
+copy .env.example .env      # editar DATABASE_URL, NEXT_PUBLIC_WHATSAPP_NUMBER, NEXT_PUBLIC_SITE_URL
 ```
 
 Criar o banco (ajustar usuário/senha):
@@ -70,11 +72,12 @@ npm run dev                 # http://localhost:3000
 
 Scripts em `package.json`: `dev`, `build`, `start`, `lint`, `db:migrate`, `db:generate`, `db:seed`, `db:studio`.
 
-### Notas da instalação no PC anterior (Windows)
-- Node instalado via `winget install OpenJS.NodeJS.LTS`.
-- MariaDB via `winget install MariaDB.Server` com senha root `root`, serviço `MariaDB`.
-- Git e GitHub CLI via winget.
+### Notas da instalação em Windows do zero
+- `winget install Git.Git OpenJS.NodeJS.LTS GitHub.cli` — instalam sem segredo.
+- MariaDB: **fixar a versão LTS**, `winget install MariaDB.Server -v 11.8.2.0`. A rolling mais nova (13.0.2) falha com `MSI 1603`. Passar as opções pelo `--override`: `"/quiet PASSWORD=root SERVICENAME=MariaDB PORT=3306 UTF8=1"`, e rodar o terminal **como administrador** (sem elevação o MSI também morre em 1603).
 - Após instalar via winget, o PATH do terminal precisa ser recarregado (ou abrir novo terminal).
+- Senha root do banco usada em dev: `root` → `DATABASE_URL="mysql://root:root@localhost:3306/turismo"`.
+- Cliente de linha de comando do MariaDB: `C:\Program Files\MariaDB 11.8\bin\mariadb.exe` (não se chama mais `mysql.exe`).
 
 ## Observações técnicas importantes
 
@@ -83,3 +86,7 @@ Scripts em `package.json`: `dev`, `build`, `start`, `lint`, `db:migrate`, `db:ge
 - Imagens remotas: `next.config.ts` libera apenas `images.unsplash.com` em `remotePatterns`. Ao subir fotos próprias, ajustar.
 - `.gitignore` ignora `.env*` mas libera `.env.example`.
 - Filtro de mês usa formato `YYYY-MM` no searchParam `month`; datas de saída são salvas em UTC com horário fixo de Brasília no seed.
+- **npm 11+ bloqueia install scripts.** No primeiro `npm install` os postinstall de `@prisma/engines`, `esbuild`, `prisma` e `unrs-resolver` não rodam, e sem eles o Prisma e o `tsx` quebram. Já existe um bloco `allowScripts` no `package.json` cobrindo os quatro; se aparecer o aviso de novo, `npm approve-scripts <pkg>` seguido de `npm rebuild`.
+- **`lucide-react` v1 removeu os ícones de marca** (`Facebook`, `Instagram`) — quebra o build inteiro, porque o `site-footer` entra no layout raiz. Os dois foram redesenhados como SVG inline dentro de `src/components/site-footer.tsx`. Não volte a importá-los do lucide.
+- Os campos `included`, `notIncluded` e `itinerary` são `Json` no Prisma, ou seja, chegam como `unknown` no TypeScript. A página do pacote valida o formato em `asStringList` / `asItinerary` antes de renderizar — reaproveitar isso no admin.
+- `getRelatedPackages` filtra por `destinationId` e exclui o pacote atual; com o seed atual (1 pacote por destino) o resultado é sempre vazio.
