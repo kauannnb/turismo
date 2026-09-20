@@ -16,9 +16,11 @@ export default async function LoginPage(props: PageProps<"/admin/login">) {
   return (
     <main className="admin-chrome flex min-h-dvh items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-sm">
-        <Link href="/" className="mb-8 flex items-center justify-center gap-2 text-brand-dark">
-          <Compass className="size-7 text-brand" />
-          <span className="text-xl font-semibold">
+        <Link href="/" className="mb-8 flex items-center justify-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-brand text-white">
+            <Compass className="size-5" />
+          </span>
+          <span className="text-lg font-semibold">
             {process.env.NEXT_PUBLIC_SITE_NAME ?? "Turismo"}
           </span>
         </Link>
