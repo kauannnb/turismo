@@ -395,6 +395,72 @@ Estado verificado depois disso: HTTPS responde 200, HTTP devolve 301 para HTTPS,
 
 ---
 
+## Parte 16 — Subir o painel administrativo (pendente)
+
+Esta versão traz o `/admin`, 11 destinos novos e o redesign. Tudo está no
+GitHub, mas a VPS ainda não recebeu. São cinco passos, **nesta ordem**.
+
+### 1. Gerar e adicionar o `SESSION_SECRET`
+
+É a chave que assina o cookie de login. **Sem ela o `/admin` responde erro 500**
+(o site público continua funcionando normalmente). Cada ambiente tem a sua — não
+reaproveite a do PC de desenvolvimento.
+
+```bash
+cd /var/www/turismo
+node -e "console.log('SESSION_SECRET=\"' + require('crypto').randomBytes(32).toString('base64') + '\"')" >> .env
+cat .env
+```
+
+Confira que a última linha ficou parecida com
+`SESSION_SECRET="hK3f...="` e que as outras quatro continuam lá.
+
+> Trocar esse valor depois desloga todo mundo. Não tem outro efeito.
+
+### 2. Atualizar o código
+
+```bash
+./deploy/deploy.sh
+```
+
+Isso puxa do GitHub, instala as dependências novas (`bcryptjs`, `jose`,
+`server-only`), aplica a migração que alarga as colunas de URL, reconstrói e
+recarrega o PM2.
+
+### 3. Cadastrar os 11 destinos no banco de produção
+
+O banco da VPS é outro, então o seed precisa rodar lá também:
+
+```bash
+npm run db:seed:litoral
+```
+
+Pode rodar quantas vezes quiser — usa upsert por slug, não duplica.
+
+### 4. Criar seu usuário do painel
+
+```bash
+npm run admin:create -- "Seu Nome" seu@email.com
+```
+
+Ele pede a senha duas vezes, sem exibir na tela. Mínimo 8 caracteres.
+Rodar de novo com o mesmo e-mail **troca a senha** — é assim que se recupera
+acesso perdido.
+
+### 5. Entrar
+
+**https://147-93-95-29.nip.io/admin/login**
+
+O painel tem visão geral, CRUD de destinos e pacotes, galeria de fotos e datas
+de saída com controle de vagas.
+
+> **Fotos:** por enquanto só entram por URL, e apenas de `images.unsplash.com`
+> ou `upload.wikimedia.org` — são os hosts liberados em `next.config.ts` →
+> `images.remotePatterns`. Colar URL de outro lugar dá erro de validação no
+> formulário. Para liberar mais hosts, edite o `next.config.ts` **e** o
+> `ALLOWED_IMAGE_HOSTS` em `src/lib/form.ts`, que precisam bater. Upload de
+> arquivo direto ainda não existe.
+
 ## Como atualizar o site depois
 
 Essa é a parte boa: a partir de agora é um comando.
@@ -419,6 +485,9 @@ O script faz tudo na ordem certa (`git pull` → `npm ci` → gerar cliente → 
 | **Botão do WhatsApp com número errado** | `.env` não atualizado, ou atualizado sem rebuild | corrigir o `.env` e rodar `./deploy/deploy.sh` |
 | **Mudei o `.env` e nada mudou no site** | `NEXT_PUBLIC_*` é embutido no build | rodar o build de novo |
 | **Site sumiu depois de reiniciar a VPS** | faltou o `pm2 startup` | refazer a Parte 10 |
+| **`/admin` dá erro 500** | `SESSION_SECRET` ausente no `.env` da VPS | passo 1 da Parte 16 |
+| **Login não entra, volta pro formulário** | cookie de sessão é `Secure` em produção e exige HTTPS | acessar pelo domínio `https://`, nunca pelo IP |
+| **Perdi a senha do painel** | — | `npm run admin:create -- "Nome" mesmo@email.com` redefine |
 | **Abre no PC mas não no celular** | celular força HTTPS e não há certificado | é o que a Parte 13 resolve |
 | **404 ao abrir pelo IP** | esperado desde a Parte 13 | usar https://147-93-95-29.nip.io |
 | **HTTPS parou de funcionar** | certificado não renovou | `sudo certbot renew --dry-run` para diagnosticar |
@@ -446,17 +515,23 @@ Isso gera um arquivo com a data no nome. Quando o admin estiver pronto e você t
 
 ---
 
-## Uma pegadinha pra resolver junto com o admin
+## A home é estática — e por que isso está resolvido
 
-No build, a **home (`/`) sai como página estática** — ela é gerada uma vez, no `npm run build`, e congela. As páginas de destino e de pacote são dinâmicas: leem o banco a cada acesso.
+A **home (`/`) é pré-renderizada no build**; as páginas de destino e de pacote
+são dinâmicas e leem o banco a cada acesso.
 
-Hoje, sem admin, isso não muda nada. Mas no dia em que você cadastrar um pacote pelo painel, ele vai aparecer em `/destinos` e **não** na home, até o próximo build.
+Isso causaria dois problemas, ambos já tratados:
 
-A correção é uma linha em `src/app/page.tsx`:
+1. **Conteúdo novo não apareceria na home.** Cada mutação do painel chama
+   `revalidatePath("/")`, então cadastrar um pacote já atualiza a home.
+2. **A data de "próximas saídas" congelaria no instante do build**, e o site
+   acabaria anunciando viagem que já partiu. Por isso a home tem
+   `export const revalidate = 300` — ela se refaz a cada 5 minutos mesmo sem
+   ninguém mexer em nada.
 
-```ts
-export const revalidate = 300; // a home se atualiza a cada 5 min
-```
+Pela mesma razão, `packageCardSelect` em `src/lib/queries.ts` é uma **função**,
+e não uma constante: como constante, o `new Date()` do filtro seria avaliado uma
+única vez, quando o módulo carrega, e sob PM2 o processo fica dias no ar.
 
 ## Parte 14 — Quando você comprar o domínio de verdade
 
