@@ -11,6 +11,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:litoral": "tsx prisma/seed-litoral.ts",
     "db:studio": "prisma studio",
     "admin:create": "tsx prisma/create-admin.ts"
   },

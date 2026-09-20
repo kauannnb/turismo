@@ -8,7 +8,7 @@ export type FormState =
 /** Hosts liberados em `next.config.ts` → `images.remotePatterns`.
  *  Mantenha os dois lados em sincronia: uma URL fora desta lista passa na
  *  validação do formulário mas o `next/image` recusa em tempo de execução. */
-export const ALLOWED_IMAGE_HOSTS = ["images.unsplash.com"];
+export const ALLOWED_IMAGE_HOSTS = ["images.unsplash.com", "upload.wikimedia.org"];
 
 export function slugify(value: string) {
   return value

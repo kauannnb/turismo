@@ -14,7 +14,8 @@ model Destination {
   state       String    @db.VarChar(2)
   region      String
   description String    @db.Text
-  coverImage  String
+  // URLs de CDN passam fácil dos 191 caracteres do VARCHAR padrão do Prisma.
+  coverImage  String    @db.VarChar(500)
   featured    Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -32,12 +33,14 @@ model Package {
   id               Int            @id @default(autoincrement())
   title            String
   slug             String         @unique
-  shortDescription String
+  // O formulário do painel aceita até 200 caracteres; o VARCHAR padrão
+  // seria 191 e cortaria antes disso.
+  shortDescription String         @db.VarChar(255)
   description      String         @db.Text
   price            Decimal        @db.Decimal(10, 2)
   durationDays     Int
   departureCity    String
-  coverImage       String
+  coverImage       String         @db.VarChar(500)
   included         Json
   notIncluded      Json
   itinerary        Json
@@ -59,7 +62,7 @@ model Package {
 
 model PackageImage {
   id        Int     @id @default(autoincrement())
-  url       String
+  url       String  @db.VarChar(500)
   alt       String
   order     Int     @default(0)
   packageId Int
