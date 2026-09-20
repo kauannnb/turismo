@@ -1,34 +1,109 @@
 @import "tailwindcss";
 
+/*
+ * Paleta: teal profundo + terracota, sobre neutros quentes.
+ * O cinza-azulado padrão do Tailwind é o que mais entrega "template";
+ * neutros com um pingo de amarelo dão o tom de hospitalidade.
+ */
 :root {
-  --background: #fafaf8;
-  --foreground: #1a1a1a;
-  --muted: #6b7280;
+  --background: #faf8f5;
   --surface: #ffffff;
-  --border: #e5e7eb;
-  --brand: #0f766e;
-  --brand-dark: #115e59;
-  --brand-light: #ccfbf1;
-  --accent: #f97316;
-  --accent-dark: #ea580c;
+  --surface-alt: #f4f1ec;
+  --foreground: #1c1917;
+  --muted: #78706a;
+  --border: #e8e2d9;
+
+  --brand: #0e6b62;
+  --brand-dark: #0a4f48;
+  --brand-light: #e4f0ee;
+
+  --accent: #c8572f;
+  --accent-dark: #a84624;
+  --accent-light: #fbeee8;
+
+  --shadow-soft: 0 1px 2px rgb(28 25 23 / 0.04), 0 4px 16px -4px rgb(28 25 23 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(28 25 23 / 0.04), 0 12px 32px -8px rgb(28 25 23 / 0.12);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-surface: var(--surface);
   --color-border: var(--border);
+
   --color-brand: var(--brand);
   --color-brand-dark: var(--brand-dark);
   --color-brand-light: var(--brand-light);
+
   --color-accent: var(--accent);
   --color-accent-dark: var(--accent-dark);
+  --color-accent-light: var(--accent-light);
+
   --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-display);
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-lift: var(--shadow-lift);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+
+  /* Títulos em serifa, com entrelinha curta e tracking negativo: é o que
+     separa "editorial" de "post de blog". */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), Georgia, serif;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  /* O painel é ferramenta de trabalho, não peça editorial: títulos em
+     serifa ali só atrapalhariam a leitura de tabelas e formulários. */
+  .admin-chrome h1,
+  .admin-chrome h2,
+  .admin-chrome h3 {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+
+  ::selection {
+    background: var(--brand);
+    color: white;
+  }
+
+  /* Foco visível só via teclado, e no mesmo tom da marca. */
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+}
+
+@utility container-page {
+  margin-inline: auto;
+  max-width: 76rem;
+  padding-inline: 1.25rem;
+}
+
+/* Rótulo em caixa alta acima dos títulos de seção. */
+@utility eyebrow {
   font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand);
 }

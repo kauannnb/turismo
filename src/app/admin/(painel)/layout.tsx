@@ -16,7 +16,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/admin">) 
   const user = await requireAdmin();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="admin-chrome flex min-h-dvh flex-col bg-background">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
           <Link href="/admin" className="flex items-center gap-2 font-semibold text-brand-dark">

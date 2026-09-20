@@ -14,7 +14,7 @@ export default async function LoginPage(props: PageProps<"/admin/login">) {
   const next = typeof raw === "string" && raw.startsWith("/admin") ? raw : "/admin";
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-12">
+    <main className="admin-chrome flex min-h-dvh items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-8 flex items-center justify-center gap-2 text-brand-dark">
           <Compass className="size-7 text-brand" />

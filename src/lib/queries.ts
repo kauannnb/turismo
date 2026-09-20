@@ -1,27 +1,37 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 
-export const packageCardSelect = {
-  id: true,
-  title: true,
-  slug: true,
-  shortDescription: true,
-  price: true,
-  durationDays: true,
-  departureCity: true,
-  coverImage: true,
-  featured: true,
-  destination: { select: { name: true, slug: true, state: true } },
-  category: { select: { name: true, slug: true } },
-  departures: {
-    where: { departureDate: { gte: new Date() } },
-    orderBy: { departureDate: "asc" },
-    take: 1,
-    select: { departureDate: true, spotsAvailable: true },
-  },
-} satisfies Prisma.PackageSelect;
+/**
+ * Precisa ser função, não constante: como constante, o `new Date()` seria
+ * avaliado uma única vez, quando o módulo carrega. Num processo que fica
+ * dias no ar sob PM2, o corte de "saídas futuras" congelaria no momento do
+ * deploy e o site passaria a anunciar datas que já passaram.
+ */
+export function packageCardSelect() {
+  return {
+    id: true,
+    title: true,
+    slug: true,
+    shortDescription: true,
+    price: true,
+    durationDays: true,
+    departureCity: true,
+    coverImage: true,
+    featured: true,
+    destination: { select: { name: true, slug: true, state: true } },
+    category: { select: { name: true, slug: true } },
+    departures: {
+      where: { departureDate: { gte: new Date() } },
+      orderBy: { departureDate: "asc" },
+      take: 1,
+      select: { departureDate: true, spotsAvailable: true },
+    },
+  } satisfies Prisma.PackageSelect;
+}
 
-export type PackageCardData = Prisma.PackageGetPayload<{ select: typeof packageCardSelect }>;
+export type PackageCardData = Prisma.PackageGetPayload<{
+  select: ReturnType<typeof packageCardSelect>;
+}>;
 
 export function getAllDestinations() {
   return prisma.destination.findMany({
@@ -61,7 +71,7 @@ export function getFeaturedPackages(take = 6) {
     where: { active: true, featured: true },
     orderBy: { createdAt: "desc" },
     take,
-    select: packageCardSelect,
+    select: packageCardSelect(),
   });
 }
 
@@ -93,7 +103,7 @@ export function getPackagesByDestination(destinationId: number, filters: Package
           ? { durationDays: "asc" }
           : { createdAt: "desc" };
 
-  return prisma.package.findMany({ where, orderBy, select: packageCardSelect });
+  return prisma.package.findMany({ where, orderBy, select: packageCardSelect() });
 }
 
 export function getPackageBySlug(slug: string) {
@@ -116,7 +126,7 @@ export function getRelatedPackages(destinationId: number, excludeId: number, tak
   return prisma.package.findMany({
     where: { active: true, destinationId, id: { not: excludeId } },
     take,
-    select: packageCardSelect,
+    select: packageCardSelect(),
   });
 }
 

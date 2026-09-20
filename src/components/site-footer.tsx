@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { Compass, MessageCircle, Mail, MapPin } from "lucide-react";
+import { Compass, Mail, MapPin, MessageCircle } from "lucide-react";
 import { whatsappUrl } from "@/lib/whatsapp";
 
 const siteName = process.env.NEXT_PUBLIC_SITE_NAME ?? "Turismo";
 
-// lucide-react v1 removeu os ícones de marca — desenhados aqui no mesmo estilo (24px, stroke).
+// lucide-react v1 removeu os ícones de marca — desenhados aqui no mesmo estilo.
 const svgProps = {
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 2,
+  strokeWidth: 1.75,
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;
@@ -32,59 +32,115 @@ function Facebook({ className }: { className?: string }) {
   );
 }
 
+const nav = [
+  { href: "/destinos", label: "Todos os destinos" },
+  { href: "/#pacotes", label: "Pacotes em destaque" },
+  { href: "/#como-funciona", label: "Como funciona" },
+  { href: "/#depoimentos", label: "Depoimentos" },
+];
+
+const institucional = [
+  "Sobre nós",
+  "Termos de uso",
+  "Política de privacidade",
+  "Política de cancelamento",
+];
+
 export function SiteFooter() {
   return (
-    <footer className="mt-20 border-t border-border bg-surface">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-4">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 font-semibold text-brand-dark">
-            <Compass className="size-6 text-brand" />
-            <span className="text-lg">{siteName}</span>
+    <footer className="mt-auto border-t border-border bg-surface">
+      <div className="container-page grid gap-12 py-16 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+        <div className="max-w-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-brand text-white">
+              <Compass className="size-5" />
+            </span>
+            <span className="font-display text-lg font-semibold">{siteName}</span>
           </div>
-          <p className="text-sm text-muted">
-            Excursões e pacotes com saídas em grupo, transporte confortável e guias que conhecem cada destino.
+          <p className="mt-4 text-sm leading-relaxed text-muted">
+            Excursões e pacotes com saídas em grupo, transporte confortável e guias que conhecem
+            cada destino.
           </p>
-          <div className="flex gap-3 text-muted">
-            <a href="#" aria-label="Instagram" className="hover:text-brand"><Instagram className="size-5" /></a>
-            <a href="#" aria-label="Facebook" className="hover:text-brand"><Facebook className="size-5" /></a>
+          <div className="mt-5 flex gap-2">
+            <a
+              href="#"
+              aria-label="Instagram"
+              className="flex size-9 items-center justify-center rounded-full border border-border text-muted transition hover:border-brand hover:text-brand"
+            >
+              <Instagram className="size-4" />
+            </a>
+            <a
+              href="#"
+              aria-label="Facebook"
+              className="flex size-9 items-center justify-center rounded-full border border-border text-muted transition hover:border-brand hover:text-brand"
+            >
+              <Facebook className="size-4" />
+            </a>
           </div>
         </div>
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground">Navegação</h3>
-          <ul className="space-y-2 text-sm text-muted">
-            <li><Link href="/destinos" className="hover:text-brand">Todos os destinos</Link></li>
-            <li><Link href="/#pacotes" className="hover:text-brand">Pacotes em destaque</Link></li>
-            <li><Link href="/#como-funciona" className="hover:text-brand">Como funciona</Link></li>
-            <li><Link href="/#depoimentos" className="hover:text-brand">Depoimentos</Link></li>
+          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground">
+            Navegação
+          </h3>
+          <ul className="mt-4 space-y-2.5 text-sm text-muted">
+            {nav.map((l) => (
+              <li key={l.href}>
+                <Link href={l.href} className="transition hover:text-brand">
+                  {l.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground">Institucional</h3>
-          <ul className="space-y-2 text-sm text-muted">
-            <li><a href="#" className="hover:text-brand">Sobre nós</a></li>
-            <li><a href="#" className="hover:text-brand">Termos de uso</a></li>
-            <li><a href="#" className="hover:text-brand">Política de privacidade</a></li>
-            <li><a href="#" className="hover:text-brand">Política de cancelamento</a></li>
+          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground">
+            Institucional
+          </h3>
+          <ul className="mt-4 space-y-2.5 text-sm text-muted">
+            {institucional.map((label) => (
+              <li key={label}>
+                <a href="#" className="transition hover:text-brand">
+                  {label}
+                </a>
+              </li>
+            ))}
           </ul>
         </div>
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground">Contato</h3>
-          <ul className="space-y-2 text-sm text-muted">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground">
+            Contato
+          </h3>
+          <ul className="mt-4 space-y-2.5 text-sm text-muted">
             <li>
-              <a href={whatsappUrl("Olá! Gostaria de informações.")} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-brand">
-                <MessageCircle className="size-4" /> WhatsApp
+              <a
+                href={whatsappUrl("Olá! Gostaria de informações.")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 transition hover:text-brand"
+              >
+                <MessageCircle className="size-4 shrink-0" /> WhatsApp
               </a>
             </li>
-            <li className="flex items-center gap-2"><Mail className="size-4" /> contato@exemplo.com.br</li>
-            <li className="flex items-center gap-2"><MapPin className="size-4" /> São Paulo, SP</li>
+            <li className="flex items-center gap-2">
+              <Mail className="size-4 shrink-0" /> contato@exemplo.com.br
+            </li>
+            <li className="flex items-center gap-2">
+              <MapPin className="size-4 shrink-0" /> Santos, SP
+            </li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-border py-4 text-center text-xs text-muted">
-        © {new Date().getFullYear()} {siteName}. Cadastur 00.000000.00.0001-0 · CNPJ 00.000.000/0001-00
+
+      <div className="border-t border-border">
+        <div className="container-page flex flex-wrap items-center justify-between gap-2 py-5 text-xs text-muted">
+          <span>
+            © {new Date().getFullYear()} {siteName}
+          </span>
+          <span>Cadastur 00.000000.00.0001-0 · CNPJ 00.000.000/0001-00</span>
+        </div>
       </div>
     </footer>
   );

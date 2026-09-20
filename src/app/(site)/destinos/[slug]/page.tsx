@@ -54,7 +54,7 @@ export default async function DestinationPage(props: PageProps<"/destinos/[slug]
 
   return (
     <>
-      <section className="relative flex min-h-[320px] items-end overflow-hidden">
+      <section className="relative flex min-h-[420px] items-end overflow-hidden">
         <Image
           src={destination.coverImage}
           alt={destination.name}
@@ -63,25 +63,35 @@ export default async function DestinationPage(props: PageProps<"/destinos/[slug]
           sizes="100vw"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-10 pt-24 text-white">
-          <nav className="mb-3 flex items-center gap-1 text-sm text-white/80">
-            <Link href="/" className="hover:text-white">Início</Link>
-            <ChevronRight className="size-4" />
-            <Link href="/destinos" className="hover:text-white">Destinos</Link>
-            <ChevronRight className="size-4" />
-            <span className="text-white">{destination.name}</span>
+        {/* Dois véus: um vertical, que segura o pé, e um da esquerda, onde o
+            texto fica. Só o vertical não dá conta de foto clara. */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/25" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/10 to-transparent" />
+        <div className="container-page relative z-10 w-full pb-12 pt-28 text-white">
+          <nav className="mb-4 flex items-center gap-1 text-sm text-white/60">
+            <Link href="/" className="transition hover:text-white">
+              Início
+            </Link>
+            <ChevronRight className="size-3.5" />
+            <Link href="/destinos" className="transition hover:text-white">
+              Destinos
+            </Link>
+            <ChevronRight className="size-3.5" />
+            <span className="text-white/90">{destination.name}</span>
           </nav>
-          <h1 className="text-3xl font-bold sm:text-5xl">
-            {destination.name} <span className="text-2xl font-normal text-white/80">· {destination.state}</span>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+            {destination.state} · {destination.region}
+          </p>
+          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-6xl">
+            {destination.name}
           </h1>
-          <p className="mt-3 max-w-2xl text-white/90">{destination.description}</p>
+          <p className="mt-4 max-w-2xl leading-relaxed text-white/80">{destination.description}</p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10">
-        <div className="mb-6 flex flex-col gap-4">
-          <h2 className="text-xl font-bold">
+      <section className="container-page py-14">
+        <div className="mb-8 flex flex-col gap-5">
+          <h2 className="text-2xl font-semibold">
             {packages.length} {packages.length === 1 ? "pacote" : "pacotes"} para {destination.name}
           </h2>
           <Suspense>
@@ -96,9 +106,11 @@ export default async function DestinationPage(props: PageProps<"/destinos/[slug]
         </div>
 
         {packages.length === 0 ? (
-          <div className="rounded-2xl bg-surface p-12 text-center ring-1 ring-border">
-            <p className="text-lg font-semibold">Nenhum pacote encontrado com esses filtros.</p>
-            <p className="mt-1 text-sm text-muted">Tente remover algum filtro ou escolher outro mês.</p>
+          <div className="rounded-2xl border border-border bg-surface p-16 text-center">
+            <p className="font-display text-xl font-semibold">Nenhum pacote com esses filtros</p>
+            <p className="mt-2 text-sm text-muted">
+              Tente remover algum filtro ou escolher outro mês.
+            </p>
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

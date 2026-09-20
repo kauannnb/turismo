@@ -39,11 +39,11 @@ export function PackageFilters({ categories, months }: Props) {
   const hasFilters = ["category", "month", "maxPrice"].some((k) => params.get(k));
 
   const selectClass =
-    "rounded-full border border-border bg-surface px-4 py-2 text-sm text-foreground outline-none focus:border-brand";
+    "cursor-pointer rounded-full border border-border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition hover:border-foreground/25 focus:border-brand";
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="flex items-center gap-1.5 text-sm font-medium text-muted">
+    <div className="flex flex-wrap items-center gap-2.5">
+      <span className="flex items-center gap-1.5 pr-1 text-sm text-muted">
         <SlidersHorizontal className="size-4" /> Filtrar
       </span>
 

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BusFront, Headset, ShieldCheck, Star, Wallet } from "lucide-react";
+import { ArrowRight, BusFront, Headset, ShieldCheck, Star, Wallet } from "lucide-react";
 import { DestinationSearch } from "@/components/destination-search";
 import { DestinationCard } from "@/components/destination-card";
 import { PackageCard } from "@/components/package-card";
@@ -11,17 +11,53 @@ import {
   getTestimonials,
 } from "@/lib/queries";
 
+/**
+ * A home é pré-renderizada no build. Sem isto, a lista de "próximas saídas"
+ * ficaria congelada no instante do deploy e acabaria anunciando data que já
+ * passou. As mutações do painel também chamam revalidatePath("/"), mas este
+ * prazo cobre o que muda sozinho com o tempo.
+ */
+export const revalidate = 300;
+
 const benefits = [
-  { icon: BusFront, title: "Saídas em grupo", text: "Transporte confortável com guia acompanhante do início ao fim." },
-  { icon: Wallet, title: "Preço final", text: "Sem taxas escondidas. O valor que você vê é o que você paga." },
-  { icon: Headset, title: "Atendimento humano", text: "Tire dúvidas e reserve direto pelo WhatsApp com a nossa equipe." },
-  { icon: ShieldCheck, title: "Agência registrada", text: "Cadastur ativo e mais de 10 anos levando viajantes pelo Brasil." },
+  {
+    icon: BusFront,
+    title: "Saídas em grupo",
+    text: "Transporte confortável com guia acompanhante do início ao fim.",
+  },
+  {
+    icon: Wallet,
+    title: "Preço final",
+    text: "Sem taxas escondidas. O valor que você vê é o que você paga.",
+  },
+  {
+    icon: Headset,
+    title: "Atendimento humano",
+    text: "Tire dúvidas e reserve direto pelo WhatsApp com a nossa equipe.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Agência registrada",
+    text: "Cadastur ativo e mais de 10 anos levando viajantes pelo Brasil.",
+  },
 ];
 
 const steps = [
-  { n: "1", title: "Escolha o destino", text: "Busque pelo lugar que você quer conhecer e veja todos os pacotes disponíveis." },
-  { n: "2", title: "Compare os pacotes", text: "Datas, duração, o que está incluso e preço por pessoa, tudo na mesma tela." },
-  { n: "3", title: "Reserve pelo WhatsApp", text: "Clique em reservar e fale com a gente. Confirmamos sua vaga na hora." },
+  {
+    n: "01",
+    title: "Escolha o destino",
+    text: "Busque pelo lugar que você quer conhecer e veja todos os pacotes disponíveis.",
+  },
+  {
+    n: "02",
+    title: "Compare os pacotes",
+    text: "Datas, duração, o que está incluso e preço por pessoa, tudo na mesma tela.",
+  },
+  {
+    n: "03",
+    title: "Reserve pelo WhatsApp",
+    text: "Clique em reservar e fale com a gente. Confirmamos sua vaga na hora.",
+  },
 ];
 
 export default async function Home() {
@@ -40,9 +76,12 @@ export default async function Home() {
     packageCount: d._count.packages,
   }));
 
+  // A home mostra uma seleção; a lista completa fica em /destinos.
+  const showcase = featuredDestinations.slice(0, 8);
+
   return (
     <>
-      <section className="relative flex min-h-[520px] items-center justify-center overflow-hidden">
+      <section className="relative flex min-h-[600px] items-center overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=2000&q=80"
           alt=""
@@ -51,42 +90,74 @@ export default async function Home() {
           sizes="100vw"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60" />
-        <div className="relative z-10 flex w-full max-w-4xl flex-col items-center gap-6 px-4 py-20 text-center text-white">
-          <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
-            Sua próxima viagem <span className="text-accent">começa aqui</span>
-          </h1>
-          <p className="max-w-xl text-lg text-white/90">
-            Excursões e pacotes com saídas em grupo para os melhores destinos do Brasil.
-          </p>
-          <DestinationSearch destinations={searchable} />
-          <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-white/80">
-            <span>Populares:</span>
-            {featuredDestinations.slice(0, 5).map((d) => (
-              <Link
-                key={d.slug}
-                href={`/destinos/${d.slug}`}
-                className="rounded-full bg-white/15 px-3 py-1 backdrop-blur transition hover:bg-white/30"
-              >
-                {d.name}
-              </Link>
-            ))}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/50 to-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/45 to-transparent" />
+
+        {/* w-full é obrigatório: como a section é flex, sem isso a div
+            encolhe ao conteúdo e o margin auto a centraliza fora da grade. */}
+        <div className="container-page relative z-10 w-full py-24">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+              Excursões e pacotes pelo Brasil
+            </p>
+            <h1 className="mt-5 font-display text-[2.75rem] font-semibold leading-[1.05] text-white sm:text-6xl">
+              Viajar em grupo, <br className="hidden sm:block" />
+              sem dor de cabeça.
+            </h1>
+            <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/80">
+              Transporte, hospedagem e guia inclusos. Você escolhe o destino, a gente cuida do
+              resto.
+            </p>
+
+            <div className="mt-9">
+              <DestinationSearch destinations={searchable} />
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-white/50">Mais procurados:</span>
+              {featuredDestinations.slice(0, 4).map((d) => (
+                <Link
+                  key={d.slug}
+                  href={`/destinos/${d.slug}`}
+                  className="rounded-full border border-white/20 px-3.5 py-1.5 text-white/80 transition hover:border-white/50 hover:text-white"
+                >
+                  {d.name}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <div className="mb-8 flex items-end justify-between">
+      <section className="border-b border-border bg-surface">
+        <div className="container-page grid gap-x-8 gap-y-9 py-14 sm:grid-cols-2 lg:grid-cols-4">
+          {benefits.map((b) => (
+            <div key={b.title}>
+              <b.icon className="size-6 text-brand" strokeWidth={1.5} />
+              <h3 className="mt-4 text-base font-semibold">{b.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{b.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="container-page py-20 sm:py-24">
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold sm:text-3xl">Destinos populares</h2>
-            <p className="text-muted">Os lugares mais procurados pelos nossos viajantes</p>
+            <p className="eyebrow">Onde ir</p>
+            <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Destinos populares</h2>
           </div>
-          <Link href="/destinos" className="text-sm font-semibold text-brand hover:underline">
-            Ver todos
+          <Link
+            href="/destinos"
+            className="group inline-flex items-center gap-1.5 text-sm font-medium text-brand"
+          >
+            Ver todos os {allDestinations.length} destinos
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredDestinations.map((d) => (
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {showcase.map((d) => (
             <DestinationCard
               key={d.slug}
               name={d.name}
@@ -99,71 +170,79 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-surface py-12">
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:grid-cols-2 lg:grid-cols-4">
-          {benefits.map((b) => (
-            <div key={b.title} className="flex gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-light text-brand">
-                <b.icon className="size-5" />
-              </span>
-              <div>
-                <h3 className="font-semibold">{b.title}</h3>
-                <p className="text-sm text-muted">{b.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <section id="pacotes" className="scroll-mt-24 bg-surface py-20 sm:py-24">
+        <div className="container-page">
+          <div className="mb-10 max-w-xl">
+            <p className="eyebrow">Próximas saídas</p>
+            <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Pacotes em destaque</h2>
+            <p className="mt-3 leading-relaxed text-muted">
+              Selecionados pela nossa equipe entre as viagens com data confirmada.
+            </p>
+          </div>
 
-      <section id="pacotes" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold sm:text-3xl">Pacotes em destaque</h2>
-          <p className="text-muted">Selecionados pela nossa equipe para as próximas saídas</p>
-        </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredPackages.map((p) => (
-            <PackageCard key={p.id} pkg={p} />
-          ))}
-        </div>
-      </section>
-
-      <section id="como-funciona" className="scroll-mt-20 bg-brand-dark py-16 text-white">
-        <div className="mx-auto max-w-6xl px-4">
-          <h2 className="mb-10 text-center text-2xl font-bold sm:text-3xl">Como funciona</h2>
-          <div className="grid gap-8 md:grid-cols-3">
-            {steps.map((s) => (
-              <div key={s.n} className="text-center">
-                <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-accent text-xl font-bold">
-                  {s.n}
-                </span>
-                <h3 className="mb-2 text-lg font-semibold">{s.title}</h3>
-                <p className="text-sm text-white/80">{s.text}</p>
-              </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredPackages.map((p) => (
+              <PackageCard key={p.id} pkg={p} />
             ))}
           </div>
         </div>
       </section>
 
-      <section id="depoimentos" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
-        <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold sm:text-3xl">O que dizem nossos viajantes</h2>
-          <p className="text-muted">Avaliações reais de quem já viajou com a gente</p>
+      <section id="como-funciona" className="scroll-mt-24 bg-brand-dark py-20 text-white sm:py-24">
+        <div className="container-page">
+          <div className="mb-12 max-w-xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/50">
+              Simples assim
+            </p>
+            <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Como funciona</h2>
+          </div>
+
+          <ol className="grid gap-10 md:grid-cols-3">
+            {steps.map((s) => (
+              <li key={s.n} className="border-t border-white/20 pt-6">
+                <span className="font-display text-3xl font-semibold text-white/35">{s.n}</span>
+                <h3 className="mt-3 text-lg font-semibold">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-white/70">{s.text}</p>
+              </li>
+            ))}
+          </ol>
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      </section>
+
+      <section id="depoimentos" className="container-page scroll-mt-24 py-20 sm:py-24">
+        <div className="mb-10 max-w-xl">
+          <p className="eyebrow">Depoimentos</p>
+          <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Quem já viajou com a gente</h2>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((t) => (
-            <figure key={t.id} className="flex flex-col gap-3 rounded-2xl bg-surface p-5 ring-1 ring-border">
-              <div className="flex gap-0.5 text-amber-400">
+            <figure
+              key={t.id}
+              className="flex flex-col rounded-2xl border border-border bg-surface p-6"
+            >
+              <div className="flex gap-0.5 text-accent">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`size-4 ${i < t.rating ? "fill-current" : "text-border"}`} />
+                  <Star
+                    key={i}
+                    className={`size-3.5 ${i < t.rating ? "fill-current" : "text-border"}`}
+                  />
                 ))}
               </div>
-              <blockquote className="text-sm text-foreground/90">“{t.text}”</blockquote>
-              <figcaption className="mt-auto text-xs text-muted">
+
+              <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-foreground/85">
+                “{t.text}”
+              </blockquote>
+
+              <figcaption className="mt-5 border-t border-border pt-4 text-xs text-muted">
                 <span className="font-semibold text-foreground">{t.authorName}</span> · {t.authorCity}
                 {t.package && (
                   <>
-                    {" · "}
-                    <Link href={`/pacotes/${t.package.slug}`} className="text-brand hover:underline">
+                    <br />
+                    <Link
+                      href={`/pacotes/${t.package.slug}`}
+                      className="text-brand transition hover:text-brand-dark"
+                    >
                       {t.package.title}
                     </Link>
                   </>

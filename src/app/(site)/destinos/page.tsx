@@ -24,13 +24,16 @@ export default async function DestinationsPage(props: PageProps<"/destinos">) {
   }));
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <div className="mb-10 flex flex-col items-center gap-6 text-center">
-        <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">Destinos</h1>
-          <p className="mt-2 text-muted">Escolha para onde você quer ir e veja os pacotes disponíveis</p>
+    <div className="container-page py-16 sm:py-20">
+      <div className="mb-12 max-w-2xl">
+        <p className="eyebrow">Para onde vamos</p>
+        <h1 className="mt-2 text-4xl font-semibold sm:text-5xl">Destinos</h1>
+        <p className="mt-3 text-lg leading-relaxed text-muted">
+          {all.length} lugares com saídas em grupo. Escolha um e veja os pacotes disponíveis.
+        </p>
+        <div className="mt-7">
+          <DestinationSearch destinations={searchable} />
         </div>
-        <DestinationSearch destinations={searchable} />
       </div>
 
       {query && (

@@ -57,9 +57,9 @@ export function DestinationSearch({ destinations }: { destinations: SearchableDe
           e.preventDefault();
           go(results[active]);
         }}
-        className="flex items-center gap-2 rounded-full bg-white p-2 shadow-xl ring-1 ring-black/5"
+        className="flex items-center gap-2 rounded-full bg-surface p-2 shadow-lift"
       >
-        <div className="flex flex-1 items-center gap-3 pl-4">
+        <div className="flex flex-1 items-center gap-3 pl-5">
           <Search className="size-5 shrink-0 text-muted" />
           <input
             type="text"
@@ -84,12 +84,12 @@ export function DestinationSearch({ destinations }: { destinations: SearchableDe
             placeholder="Para onde você quer ir?"
             aria-label="Buscar destino"
             autoComplete="off"
-            className="w-full bg-transparent py-2 text-base text-foreground outline-none placeholder:text-muted"
+            className="w-full bg-transparent py-2.5 text-base text-foreground outline-none placeholder:text-muted"
           />
         </div>
         <button
           type="submit"
-          className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition hover:bg-accent-dark"
+          className="rounded-full bg-brand px-7 py-3 text-sm font-medium text-white transition hover:bg-brand-dark"
         >
           Buscar
         </button>
@@ -98,7 +98,7 @@ export function DestinationSearch({ destinations }: { destinations: SearchableDe
       {open && results.length > 0 && (
         <ul
           role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl bg-white text-left shadow-2xl ring-1 ring-black/5"
+          className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-surface text-left shadow-lift"
         >
           {results.map((d, i) => (
             <li key={d.slug} role="option" aria-selected={i === active}>
@@ -107,7 +107,7 @@ export function DestinationSearch({ destinations }: { destinations: SearchableDe
                 onMouseEnter={() => setActive(i)}
                 onClick={() => go(d)}
                 className={`flex w-full items-center gap-3 px-4 py-3 text-left transition ${
-                  i === active ? "bg-brand-light/60" : "hover:bg-zinc-50"
+                  i === active ? "bg-brand-light" : "hover:bg-surface-alt"
                 }`}
               >
                 <span className="flex size-9 items-center justify-center rounded-full bg-brand-light text-brand">
