@@ -40,12 +40,20 @@ Referências analisadas (o que aproveitar de cada uma):
 - Tema em `src/app/globals.css`: brand teal (`#0f766e`), accent laranja (`#f97316`), tokens via `@theme inline`.
 - **Projeto já roda de verdade** (2026-09-19): `npm run dev` sobe limpo, todas as rotas respondem 200, 404 funciona, `tsc --noEmit` e `eslint` passam sem erro.
 
+### No ar desde 2026-09-20
+
+**https://147-93-95-29.nip.io** — VPS Hostinger (Ubuntu 26.04, 2 vCPU / 8 GB), nginx + PM2 + MariaDB 11.8, HTTPS via Let's Encrypt. O passo a passo completo e o histórico do que deu errado estão em [`DEPLOY.md`](DEPLOY.md).
+
+Para publicar uma alteração: `git push` daqui, depois `cd /var/www/turismo && ./deploy/deploy.sh` na VPS (usuário `madruga`).
+
+O `nip.io` é um domínio temporário — resolve o IP embutido no próprio nome e permite certificado HTTPS, que IP puro não permite. Trocar pelo domínio definitivo quando houver (Parte 14 do `DEPLOY.md`).
+
 ### Falta (próximos passos, nesta ordem)
 1. Painel admin (`/admin`): login (tabela `User` já existe, usar bcrypt + cookie de sessão), CRUD de destinos, pacotes, datas, fotos (upload local em `public/uploads` ou similar).
-2. Conteúdo real: trocar `NEXT_PUBLIC_WHATSAPP_NUMBER` (hoje é o placeholder `5511999999999`), textos institucionais do rodapé, Cadastur/CNPJ e fotos próprias no lugar das do Unsplash.
+2. Conteúdo real: textos institucionais do rodapé, Cadastur/CNPJ e fotos próprias no lugar das do Unsplash. O número de WhatsApp de produção já está configurado no `.env` da VPS.
 3. Mais de um pacote por destino no seed — hoje é 1 por destino, então o bloco "Outros pacotes para…" nunca aparece com os dados de exemplo (o bloco em si já foi testado e funciona).
-4. Deploy na VPS Hostinger: **passo a passo completo em [`DEPLOY.md`](DEPLOY.md)** (nginx + PM2 + MariaDB). Os arquivos já estão no repo: `ecosystem.config.cjs`, `deploy/nginx-turismo.conf`, `deploy/deploy.sh`. `npm run build` e `npm start` já foram validados localmente em 2026-09-19.
-5. A home (`/`) é gerada estática no build — quando o admin existir, colocar `export const revalidate = 300` em `src/app/page.tsx`, senão pacote novo não aparece nela. Detalhes no `DEPLOY.md`.
+4. A home (`/`) é gerada estática no build — quando o admin existir, colocar `export const revalidate = 300` em `src/app/page.tsx`, senão pacote novo não aparece nela. Detalhes no `DEPLOY.md`.
+5. SEO / Google: só depois do domínio definitivo e do conteúdo real, senão indexa os dados de exemplo. Parte 15 do `DEPLOY.md`.
 
 ## Como rodar em uma máquina nova
 

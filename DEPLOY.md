@@ -342,6 +342,8 @@ O `nginx -t` testa a configuração antes de aplicar. Tem que dizer `syntax is o
 sudo systemctl reload nginx
 ```
 
+> ⚠️ **Depois que a Parte 13 rodar, não repita esse `sudo cp`.** O certbot passa a ser dono desse arquivo no servidor, e sobrescrevê-lo com a versão do repositório derruba o HTTPS.
+
 ## Parte 12 — Testar de verdade
 
 Abra `http://IP_DA_VPS` no navegador do seu PC (com `http://`, não `https://` — ainda não tem certificado).
@@ -356,6 +358,40 @@ Confira, nesta ordem:
 - [ ] **O botão verde do WhatsApp abre a conversa com o SEU número**, e a mensagem já vem escrita com o nome do pacote e o link
 
 O último item é o que realmente importa — é ele que gera cliente.
+
+---
+
+## Parte 13 — Domínio temporário e HTTPS ✅ (feito em 20/09/2026)
+
+**Endereço atual do site: https://147-93-95-29.nip.io**
+
+Acessar por IP cru dá problema no celular: navegadores modernos tentam HTTPS antes de HTTP, e certificado grátis (Let's Encrypt) **não é emitido para endereço IP**, só para nome de domínio. Resultado: o site abria no desktop e não abria no celular.
+
+A saída sem comprar domínio é o **nip.io**: um DNS público que resolve qualquer nome no formato `<ip>.nip.io` para o próprio IP embutido no nome. Não precisa cadastro nem esperar propagação, e como `nip.io` está na Public Suffix List, o Let's Encrypt trata cada subdomínio como domínio próprio e emite certificado normalmente.
+
+O que foi feito:
+
+```bash
+# 1. nginx passa a responder por um nome, não por qualquer host
+sudo sed -i 's/server_name _;/server_name 147-93-95-29.nip.io;/' /etc/nginx/sites-available/turismo
+sudo nginx -t && sudo systemctl reload nginx
+
+# 2. certificado (validação pela porta 80, por isso o passo 1 vem antes)
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d 147-93-95-29.nip.io      # escolher "2 = Redirect" no fim
+
+# 3. a URL entra no build, então precisa reconstruir
+cd /var/www/turismo
+sed -i 's|NEXT_PUBLIC_SITE_URL=.*|NEXT_PUBLIC_SITE_URL="https://147-93-95-29.nip.io"|' .env
+npm run build && pm2 reload turismo
+```
+
+Estado verificado depois disso: HTTPS responde 200, HTTP devolve 301 para HTTPS, certificado Let's Encrypt válido até 19/12/2026 com renovação automática via timer do systemd, e o link dentro da mensagem do WhatsApp aponta para o domínio novo.
+
+**Dois efeitos colaterais que valem saber:**
+
+1. **`http://147.93.95.29` agora responde 404.** O certbot adiciona um bloco `return 404` para hosts que não batem com o `server_name`. É o padrão dele e é desejável — só significa que o endereço do site passou a ser o nome, não o IP.
+2. **O certbot reescreveu `/etc/nginx/sites-available/turismo`**, adicionando as linhas de SSL. O arquivo no servidor agora é diferente do `deploy/nginx-turismo.conf` deste repositório. **Não repita o `sudo cp` da Parte 11** — isso apagaria a configuração de HTTPS. Se algum dia precisar refazer, rode o `certbot --nginx` de novo depois.
 
 ---
 
@@ -383,6 +419,9 @@ O script faz tudo na ordem certa (`git pull` → `npm ci` → gerar cliente → 
 | **Botão do WhatsApp com número errado** | `.env` não atualizado, ou atualizado sem rebuild | corrigir o `.env` e rodar `./deploy/deploy.sh` |
 | **Mudei o `.env` e nada mudou no site** | `NEXT_PUBLIC_*` é embutido no build | rodar o build de novo |
 | **Site sumiu depois de reiniciar a VPS** | faltou o `pm2 startup` | refazer a Parte 10 |
+| **Abre no PC mas não no celular** | celular força HTTPS e não há certificado | é o que a Parte 13 resolve |
+| **404 ao abrir pelo IP** | esperado desde a Parte 13 | usar https://147-93-95-29.nip.io |
+| **HTTPS parou de funcionar** | certificado não renovou | `sudo certbot renew --dry-run` para diagnosticar |
 
 ## Comandos do dia a dia
 
@@ -419,21 +458,40 @@ A correção é uma linha em `src/app/page.tsx`:
 export const revalidate = 300; // a home se atualiza a cada 5 min
 ```
 
-## Parte 13 — Quando você comprar o domínio
+## Parte 14 — Quando você comprar o domínio de verdade
 
-1. No painel de quem vendeu o domínio, crie dois registros **A** apontando pro `IP_DA_VPS`: um para `@` (o domínio puro) e outro para `www`. A propagação leva de minutos a algumas horas.
-2. Na VPS, edite a configuração do nginx:
+O `nip.io` da Parte 13 resolve o problema técnico (HTTPS, celular), mas não serve de endereço definitivo: ninguém decora, e não passa credibilidade. Quando comprar o domínio, a troca é curta — o certbot já está instalado e configurado.
+
+1. No painel de quem vendeu o domínio, crie dois registros **A** apontando pro `147.93.95.29`: um para `@` (o domínio puro) e outro para `www`. A propagação leva de minutos a algumas horas. Confira com `nslookup seudominio.com.br` antes de seguir.
+2. Na VPS, troque o `server_name` (hoje está com o nip.io):
    ```bash
    sudo nano /etc/nginx/sites-available/turismo
    ```
-   Troque `server_name _;` por `server_name seudominio.com.br www.seudominio.com.br;`, salve (`Ctrl+O`, Enter, `Ctrl+X`) e recarregue:
+   Procure a linha `server_name 147-93-95-29.nip.io;` e troque por `server_name seudominio.com.br www.seudominio.com.br;`. Salve (`Ctrl+O`, Enter, `Ctrl+X`) e recarregue:
    ```bash
    sudo nginx -t && sudo systemctl reload nginx
    ```
-3. Instale o certificado HTTPS (é grátis e renova sozinho):
+3. Emita o certificado do domínio novo:
    ```bash
-   sudo apt install -y certbot python3-certbot-nginx
    sudo certbot --nginx -d seudominio.com.br -d www.seudominio.com.br
    ```
-   Ele pergunta um e-mail, pede aceite dos termos, e oferece redirecionar HTTP → HTTPS: **aceite**.
-4. **Atualize o `.env`** com `NEXT_PUBLIC_SITE_URL="https://seudominio.com.br"` e rode `./deploy/deploy.sh`. Sem esse rebuild, o link que vai na mensagem do WhatsApp continua apontando pro IP antigo.
+   Escolha **`2` (Redirect)** no fim, como antes.
+4. **Atualize o `.env`** e reconstrua — sem isso, o link da mensagem do WhatsApp continua apontando pro nip.io:
+   ```bash
+   cd /var/www/turismo
+   sed -i 's|NEXT_PUBLIC_SITE_URL=.*|NEXT_PUBLIC_SITE_URL="https://seudominio.com.br"|' .env
+   ./deploy/deploy.sh
+   ```
+5. Opcional: remover o certificado antigo do nip.io com `sudo certbot delete --cert-name 147-93-95-29.nip.io`.
+
+## Parte 15 — Aparecer no Google
+
+Isso é independente de ter domínio bonito, e **só vale a pena depois** que o site tiver domínio definitivo e conteúdo real. Hoje o banco está com os 8 pacotes de exemplo do seed, fotos do Unsplash e depoimentos fictícios — indexar isso agora associaria esse conteúdo falso ao endereço do negócio.
+
+Quando chegar a hora, são três coisas:
+
+1. **`robots.txt` e `sitemap.xml`** — o Next gera os dois nativamente, via `src/app/robots.ts` e `src/app/sitemap.ts`. O sitemap deve listar as páginas de destino e de pacote a partir do banco.
+2. **Google Search Console** — cadastrar o domínio, provar que é seu (registro TXT no DNS) e enviar o sitemap.
+3. **Esperar.** Indexação leva de dias a algumas semanas. Não existe botão de "aparecer agora".
+
+Enquanto isso, o `metadata` de cada página já está montado (título, descrição e `openGraph` na página do pacote), então link compartilhado no WhatsApp já mostra prévia com imagem.
