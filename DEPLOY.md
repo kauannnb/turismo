@@ -490,7 +490,39 @@ cd /var/www/turismo
 ./deploy/deploy.sh
 ```
 
-O script faz tudo na ordem certa (`git pull` → `npm ci` → gerar cliente → migrar banco → build → recarregar o PM2) e para no primeiro erro, sem deixar o site num estado quebrado pela metade.
+O script faz tudo na ordem certa (`git pull` → `npm ci` → criar a pasta de uploads
+→ gerar cliente → migrar banco → build → recarregar o PM2) e para no primeiro erro,
+sem deixar o site num estado quebrado pela metade.
+
+**Antes de rodar, vale conferir se o banco não está travado** por uma migração que
+falhou numa tentativa anterior — `migrate deploy` se recusa a seguir enquanto houver
+uma pendência:
+
+```bash
+npx prisma migrate status
+```
+
+Se acusar falha, `npx prisma migrate resolve --rolled-back <nome-da-migração>` e
+rode o deploy de novo.
+
+### Upload de imagens
+
+As fotos enviadas pelo painel ficam em `/var/www/turismo/uploads`, fora do git, e são
+servidas pela rota `/api/uploads/...` — não por `public/`, que o Next congela no build.
+
+Dois pontos de atenção no servidor:
+
+- A pasta precisa pertencer ao usuário que roda o PM2 (`madruga`). O `deploy.sh` a cria,
+  mas se você já tiver rodado algo como root ali, confira com `ls -la uploads`.
+- O nginx limita o tamanho do corpo da requisição. O arquivo de configuração já vem com
+  `client_max_body_size 20M`, folgado para o limite de 8 MB por imagem. Se um upload
+  falhar com **413**, é essa linha que sumiu.
+
+Para fazer backup das imagens junto com o banco:
+
+```bash
+tar czf ~/uploads-$(date +%F).tar.gz -C /var/www/turismo uploads
+```
 
 ## Quando der problema
 

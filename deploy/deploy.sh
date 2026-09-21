@@ -12,6 +12,12 @@ git pull --ff-only origin main
 echo "==> dependências"
 npm ci
 
+# As imagens enviadas pelo painel moram aqui. Fica fora do git de propósito,
+# então precisa existir no servidor — e sobrevive aos deploys, já que este
+# script só faz pull e build, nunca apaga a pasta do projeto.
+echo "==> pasta de uploads"
+mkdir -p "${UPLOAD_DIR:-$APP_DIR/uploads}"
+
 echo "==> prisma client + migrações"
 npm run db:generate
 npm run db:deploy
