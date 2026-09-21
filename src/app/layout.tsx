@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Inter no corpo: neutra e muito legível, do tipo que não chama atenção
+// para si — é o que se espera de texto institucional.
+const bodyFont = Inter({
+  variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
 });
 
-// Serifa de display para os títulos. `optical-sizing` automático deixa os
-// tamanhos grandes mais finos e os pequenos mais robustos.
-const fraunces = Fraunces({
+// Playfair Display nos títulos: serifa de alto contraste, imponente nos
+// tamanhos grandes. Substituiu a Fraunces, que tinha um traço mais
+// descontraído do que o tom que o site precisa passar.
+const displayFont = Playfair_Display({
   variable: "--font-display",
   subsets: ["latin"],
   display: "swap",
@@ -31,7 +34,7 @@ export const metadata: Metadata = {
 // (site)/layout.tsx, para que /admin não os herde.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${geistSans.variable} ${fraunces.variable} h-full`}>
+    <html lang="pt-BR" className={`${bodyFont.variable} ${displayFont.variable} h-full`}>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

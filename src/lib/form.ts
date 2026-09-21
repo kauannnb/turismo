@@ -6,9 +6,35 @@ export type FormState =
   | undefined;
 
 /** Hosts liberados em `next.config.ts` → `images.remotePatterns`.
- *  Mantenha os dois lados em sincronia: uma URL fora desta lista passa na
- *  validação do formulário mas o `next/image` recusa em tempo de execução. */
+ *
+ *  As imagens novas entram por upload (`/api/uploads/...`, caminho local que
+ *  dispensa remotePatterns). Esta lista existe para as fotos que já estavam
+ *  no banco antes do upload existir — o seed usa as duas origens. */
 export const ALLOWED_IMAGE_HOSTS = ["images.unsplash.com", "upload.wikimedia.org"];
+
+/**
+ * Acha um slug livre, acrescentando sufixo numérico se preciso.
+ *
+ * Sem isso, cadastrar dois destinos com o mesmo nome falharia em erro de
+ * chave única — e como o slug agora é gerado sozinho a partir do nome, a
+ * pessoa não teria nem como corrigir pelo formulário.
+ */
+export async function uniqueSlug(
+  base: string,
+  exists: (slug: string) => Promise<{ id: number } | null>,
+  ignoreId?: number,
+) {
+  const raiz = base || "item";
+
+  for (let n = 1; n < 200; n++) {
+    const candidate = n === 1 ? raiz : `${raiz}-${n}`;
+    const found = await exists(candidate);
+    if (!found || found.id === ignoreId) return candidate;
+  }
+
+  // Fim de linha improvável; o sufixo aleatório garante que não trava.
+  return `${raiz}-${Date.now().toString(36)}`;
+}
 
 export function slugify(value: string) {
   return value

@@ -42,3 +42,8 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Imagens enviadas pelo painel. Ficam fora do build porque o Next so serve
+# o que estava em public/ no momento em que ele rodou.
+/uploads
+

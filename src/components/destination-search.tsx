@@ -8,7 +8,7 @@ export type SearchableDestination = {
   name: string;
   slug: string;
   state: string;
-  region: string;
+  region: string | null;
   packageCount: number;
 };
 
@@ -26,7 +26,7 @@ export function DestinationSearch({ destinations }: { destinations: SearchableDe
   const results = useMemo(() => {
     const q = normalize(query.trim());
     const list = q
-      ? destinations.filter((d) => normalize(`${d.name} ${d.state} ${d.region}`).includes(q))
+      ? destinations.filter((d) => normalize(`${d.name} ${d.state} ${d.region ?? ""}`).includes(q))
       : destinations;
     return list.slice(0, 6);
   }, [query, destinations]);
@@ -117,7 +117,7 @@ export function DestinationSearch({ destinations }: { destinations: SearchableDe
                   <span className="block font-medium text-foreground">
                     {d.name}, {d.state}
                   </span>
-                  <span className="block text-xs text-muted">{d.region}</span>
+                  <span className="block text-xs text-muted">{d.region ?? "—"}</span>
                 </span>
                 <span className="text-xs text-muted">
                   {d.packageCount} {d.packageCount === 1 ? "pacote" : "pacotes"}

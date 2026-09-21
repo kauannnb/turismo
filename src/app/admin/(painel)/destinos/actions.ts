@@ -5,51 +5,43 @@ import { redirect } from "next/navigation";
 import * as z from "zod";
 import { requireAdmin } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import {
-  ALLOWED_IMAGE_HOSTS,
-  isAllowedImageUrl,
-  isUniqueViolation,
-  slugify,
-  type FormState,
-} from "@/lib/form";
+import { slugify, uniqueSlug, type FormState } from "@/lib/form";
+import { resolveImageField } from "@/lib/uploads";
+
+/**
+ * Só nome e estado são obrigatórios. O resto entra vazio e se completa
+ * depois — a ideia é conseguir cadastrar um destino em dez segundos.
+ * `vazio()` transforma string em branco em null, que é o que o banco espera.
+ */
+const vazio = (v: unknown) => {
+  const s = typeof v === "string" ? v.trim() : "";
+  return s === "" ? null : s;
+};
 
 const DestinationSchema = z.object({
   name: z.string().trim().min(2, { error: "Informe o nome do destino." }),
-  slug: z
-    .string()
-    .trim()
-    .regex(/^[a-z0-9-]+$/, { error: "Use apenas letras minúsculas, números e hífen." }),
   state: z
     .string()
     .trim()
     .toUpperCase()
     .regex(/^[A-Z]{2}$/, { error: "Use a sigla com 2 letras (ex.: SP)." }),
-  region: z.string().trim().min(2, { error: "Informe a região." }),
-  description: z.string().trim().min(20, { error: "Descreva o destino em pelo menos 20 caracteres." }),
-  coverImage: z.string().trim().refine(isAllowedImageUrl, {
-    error: `A imagem precisa ser uma URL https de: ${ALLOWED_IMAGE_HOSTS.join(", ")}.`,
-  }),
+  region: z.string().nullable(),
+  description: z.string().nullable(),
   featured: z.boolean(),
 });
 
 function parse(formData: FormData) {
-  const name = String(formData.get("name") ?? "");
-  const rawSlug = String(formData.get("slug") ?? "").trim();
-
   return DestinationSchema.safeParse({
-    name,
-    // Slug vazio é preenchido a partir do nome, em vez de recusar o envio.
-    slug: rawSlug ? slugify(rawSlug) : slugify(name),
+    name: String(formData.get("name") ?? ""),
     state: String(formData.get("state") ?? ""),
-    region: String(formData.get("region") ?? ""),
-    description: String(formData.get("description") ?? ""),
-    coverImage: String(formData.get("coverImage") ?? ""),
+    region: vazio(formData.get("region")),
+    description: vazio(formData.get("description")),
     featured: formData.get("featured") === "on",
   });
 }
 
 /** Revalida o que depende de destinos. A home é estática, então sem isto
- *  um destino novo só apareceria nela no próximo build. */
+ *  um destino novo só apareceria nela no próximo ciclo de revalidação. */
 function revalidateDestinations(slug?: string) {
   revalidatePath("/");
   revalidatePath("/destinos");
@@ -64,17 +56,22 @@ export async function createDestination(_prev: FormState, formData: FormData): P
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   }
 
-  try {
-    await prisma.destination.create({ data: parsed.data });
-  } catch (err) {
-    if (isUniqueViolation(err)) {
-      return { fieldErrors: { slug: ["Já existe um destino com esse endereço (slug)."] } };
-    }
-    throw err;
-  }
+  const image = await resolveImageField(formData, "coverImage");
+  if ("error" in image) return { fieldErrors: { coverImage: [image.error] } };
 
-  revalidateDestinations(parsed.data.slug);
-  redirect("/admin/destinos");
+  // O slug sai do nome. Se já existir, ganha sufixo — assim dois destinos
+  // com o mesmo nome não travam o cadastro com erro de chave única.
+  const slug = await uniqueSlug(slugify(parsed.data.name), (s) =>
+    prisma.destination.findUnique({ where: { slug: s }, select: { id: true } }),
+  );
+
+  const created = await prisma.destination.create({
+    data: { ...parsed.data, slug, coverImage: image.value },
+    select: { id: true },
+  });
+
+  revalidateDestinations(slug);
+  redirect(`/admin/destinos/${created.id}?ok=criado`);
 }
 
 export async function updateDestination(
@@ -89,21 +86,19 @@ export async function updateDestination(
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   }
 
+  const image = await resolveImageField(formData, "coverImage");
+  if ("error" in image) return { fieldErrors: { coverImage: [image.error] } };
+
   const before = await prisma.destination.findUnique({ where: { id }, select: { slug: true } });
 
-  try {
-    await prisma.destination.update({ where: { id }, data: parsed.data });
-  } catch (err) {
-    if (isUniqueViolation(err)) {
-      return { fieldErrors: { slug: ["Já existe um destino com esse endereço (slug)."] } };
-    }
-    throw err;
-  }
+  await prisma.destination.update({
+    where: { id },
+    data: { ...parsed.data, coverImage: image.value },
+  });
 
-  revalidateDestinations(parsed.data.slug);
-  // Se o slug mudou, a página antiga também precisa sair do cache.
-  if (before && before.slug !== parsed.data.slug) revalidatePath(`/destinos/${before.slug}`);
-  redirect("/admin/destinos");
+  if (before) revalidatePath(`/destinos/${before.slug}`);
+  revalidateDestinations(before?.slug);
+  redirect(`/admin/destinos/${id}?ok=salvo`);
 }
 
 export async function deleteDestination(formData: FormData) {

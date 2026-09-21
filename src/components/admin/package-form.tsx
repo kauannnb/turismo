@@ -3,30 +3,22 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
-import {
-  Checkbox,
-  Field,
-  FormError,
-  Input,
-  Select,
-  SubmitButton,
-  Textarea,
-} from "./form-ui";
-import { ALLOWED_IMAGE_HOSTS, slugify, type FormState } from "@/lib/form";
+import { Checkbox, Field, FormError, Input, Select, SubmitButton, Textarea } from "./form-ui";
+import { ImageField } from "./image-field";
+import type { FormState } from "@/lib/form";
 
 export type ItineraryDay = { day: number; title: string; description: string };
 
 export type PackageInitial = {
   title: string;
-  slug: string;
-  shortDescription: string;
-  description: string;
-  price: string;
-  durationDays: number;
-  departureCity: string;
-  coverImage: string;
+  shortDescription: string | null;
+  description: string | null;
+  price: string | null;
+  durationDays: number | null;
+  departureCity: string | null;
+  coverImage: string | null;
   destinationId: number;
-  categoryId: number;
+  categoryId: number | null;
   included: string[];
   notIncluded: string[];
   itinerary: ItineraryDay[];
@@ -52,13 +44,8 @@ export function PackageForm({
   submitLabel,
 }: Props) {
   const [state, formAction] = useActionState<FormState, FormData>(action, undefined);
-  const [title, setTitle] = useState(initial?.title ?? "");
-  const [slug, setSlug] = useState(initial?.slug ?? "");
-  const [cover, setCover] = useState(initial?.coverImage ?? "");
   const [days, setDays] = useState<ItineraryDay[]>(initial?.itinerary ?? []);
   const errors = state?.fieldErrors;
-
-  const slugTouched = slug !== "" && slug !== slugify(title);
 
   function addDay() {
     setDays((prev) => [...prev, { day: prev.length + 1, title: "", description: "" }]);
@@ -77,157 +64,123 @@ export function PackageForm({
     <form action={formAction} className="flex flex-col gap-6">
       <FormError message={state?.error} />
 
-      <section className="flex flex-col gap-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Identificação</h2>
-
+      <div className="grid gap-5 sm:grid-cols-[2fr_1fr]">
         <Field label="Título" name="title" errors={errors?.title}>
           <Input
             name="title"
             required
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              if (!initial && !slugTouched) setSlug(slugify(e.target.value));
-            }}
-            placeholder="Bonito: Flutuação e Grutas"
+            defaultValue={initial?.title ?? ""}
+            placeholder="Ubatuba: praias e cachoeiras"
           />
         </Field>
 
-        <Field
-          label="Endereço no site (slug)"
-          name="slug"
-          hint={`/pacotes/${slug || "..."}`}
-          errors={errors?.slug}
-        >
-          <Input name="slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
+        <Field label="Destino" name="destinationId" errors={errors?.destinationId}>
+          <Select name="destinationId" required defaultValue={initial?.destinationId ?? ""}>
+            <option value="" disabled>
+              Selecione...
+            </option>
+            {destinations.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+                {d.state ? ` · ${d.state}` : ""}
+              </option>
+            ))}
+          </Select>
         </Field>
+      </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Destino" name="destinationId" errors={errors?.destinationId}>
-            <Select name="destinationId" required defaultValue={initial?.destinationId ?? ""}>
-              <option value="" disabled>
-                Selecione...
-              </option>
-              {destinations.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                  {d.state ? ` · ${d.state}` : ""}
-                </option>
-              ))}
-            </Select>
-          </Field>
+      <p className="rounded-lg bg-surface-alt px-4 py-3 text-xs text-muted">
+        Só título e destino são obrigatórios. Salve agora e complete depois — o endereço do pacote
+        no site é gerado a partir do título.
+      </p>
 
-          <Field label="Categoria" name="categoryId" errors={errors?.categoryId}>
-            <Select name="categoryId" required defaultValue={initial?.categoryId ?? ""}>
-              <option value="" disabled>
-                Selecione...
-              </option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
+      <Field label="Categoria" name="categoryId" hint="Opcional." errors={errors?.categoryId}>
+        <Select name="categoryId" defaultValue={initial?.categoryId ?? ""}>
+          <option value="">Sem categoria</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
 
-        <Field
-          label="Chamada curta"
+      <Field
+        label="Chamada curta"
+        name="shortDescription"
+        hint="Opcional. Aparece nos cards da listagem, até 200 caracteres."
+        errors={errors?.shortDescription}
+      >
+        <Textarea
           name="shortDescription"
-          hint="Aparece nos cards da listagem. Até 200 caracteres."
-          errors={errors?.shortDescription}
-        >
-          <Textarea
-            name="shortDescription"
-            required
-            rows={2}
-            maxLength={200}
-            defaultValue={initial?.shortDescription ?? ""}
+          rows={2}
+          maxLength={200}
+          defaultValue={initial?.shortDescription ?? ""}
+        />
+      </Field>
+
+      <Field
+        label="Descrição completa"
+        name="description"
+        hint="Opcional. Separe os parágrafos com uma linha em branco."
+        errors={errors?.description}
+      >
+        <Textarea name="description" rows={6} defaultValue={initial?.description ?? ""} />
+      </Field>
+
+      <div className="grid gap-5 sm:grid-cols-3">
+        <Field label="Preço por pessoa (R$)" name="price" hint="Opcional." errors={errors?.price}>
+          <Input
+            name="price"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={initial?.price ?? ""}
+            placeholder="1290.00"
           />
         </Field>
-
-        <Field label="Descrição completa" name="description" errors={errors?.description}>
-          <Textarea
-            name="description"
-            required
-            rows={6}
-            defaultValue={initial?.description ?? ""}
-            placeholder="Separe os parágrafos com uma linha em branco."
-          />
-        </Field>
-      </section>
-
-      <section className="flex flex-col gap-5 border-t border-border pt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-          Preço e logística
-        </h2>
-
-        <div className="grid gap-5 sm:grid-cols-3">
-          <Field label="Preço por pessoa (R$)" name="price" errors={errors?.price}>
-            <Input
-              name="price"
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              defaultValue={initial?.price ?? ""}
-              placeholder="1290.00"
-            />
-          </Field>
-
-          <Field label="Duração (dias)" name="durationDays" errors={errors?.durationDays}>
-            <Input
-              name="durationDays"
-              type="number"
-              min="1"
-              max="90"
-              required
-              defaultValue={initial?.durationDays ?? ""}
-            />
-          </Field>
-
-          <Field label="Cidade de saída" name="departureCity" errors={errors?.departureCity}>
-            <Input
-              name="departureCity"
-              required
-              defaultValue={initial?.departureCity ?? ""}
-              placeholder="São Paulo"
-            />
-          </Field>
-        </div>
 
         <Field
-          label="Imagem de capa (URL)"
-          name="coverImage"
-          hint={`Somente https de: ${ALLOWED_IMAGE_HOSTS.join(", ")}`}
-          errors={errors?.coverImage}
+          label="Duração (dias)"
+          name="durationDays"
+          hint="Opcional."
+          errors={errors?.durationDays}
         >
           <Input
-            name="coverImage"
-            required
-            value={cover}
-            onChange={(e) => setCover(e.target.value)}
+            name="durationDays"
+            type="number"
+            min="1"
+            max="90"
+            defaultValue={initial?.durationDays ?? ""}
           />
         </Field>
 
-        {cover && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={cover}
-            alt="Prévia da capa"
-            className="h-40 w-full rounded-xl object-cover ring-1 ring-border"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
+        <Field
+          label="Cidade de saída"
+          name="departureCity"
+          hint="Opcional."
+          errors={errors?.departureCity}
+        >
+          <Input
+            name="departureCity"
+            defaultValue={initial?.departureCity ?? ""}
+            placeholder="São Paulo"
           />
-        )}
-      </section>
+        </Field>
+      </div>
+
+      <ImageField
+        name="coverImage"
+        label="Imagem de capa"
+        current={initial?.coverImage}
+        errors={errors?.coverImage}
+      />
 
       <section className="grid gap-5 border-t border-border pt-6 sm:grid-cols-2">
         <Field
           label="O que está incluso"
           name="included"
-          hint="Um item por linha."
+          hint="Um item por linha. Opcional."
           errors={errors?.included}
         >
           <Textarea
@@ -241,7 +194,7 @@ export function PackageForm({
         <Field
           label="Não incluso"
           name="notIncluded"
-          hint="Um item por linha."
+          hint="Um item por linha. Opcional."
           errors={errors?.notIncluded}
         >
           <Textarea

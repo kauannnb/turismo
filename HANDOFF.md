@@ -39,7 +39,9 @@ Referências analisadas (o que aproveitar de cada uma):
 - `src/app/not-found.tsx` (404 com atalhos para `/destinos` e `/`). Traz header/footer por conta própria, já que o layout raiz não tem.
 - **Painel em `/admin`** (2026-09-20): login com bcrypt + sessão JWT assinada em cookie HttpOnly (`jose`), `src/proxy.ts` para a checagem otimista e `src/lib/dal.ts` para a verificação forte. CRUD de destinos e pacotes, galeria, datas de saída com vagas. Primeiro usuário: `npm run admin:create -- "Nome" email@dominio.com`.
 - **19 destinos**: os 8 originais + 11 do litoral SP, Paraty e Fernando de Noronha (`npm run db:seed:litoral`, idempotente).
-- **Design** (2026-09-20): teal profundo + terracota sobre neutros quentes, títulos em Fraunces e corpo em Geist. Tokens em `src/app/globals.css`, com os utilitários `container-page` e `eyebrow`. O painel usa `.admin-chrome`, que devolve os títulos para a sans.
+- **Design**: teal profundo + terracota sobre neutros quentes, títulos em **Playfair Display** e corpo em **Inter**. Tokens em `src/app/globals.css`, com os utilitários `container-page` e `eyebrow`. O painel usa `.admin-chrome`, que devolve os títulos para a sans.
+- **Upload de imagens** (2026-09-21): arquivos gravados em `<projeto>/uploads/<ano>/<mês>/<aleatório>.<ext>` e servidos por `/api/uploads/[...path]`. Validação por bytes iniciais (não pela extensão nem pelo `type` enviado), limite de 8 MB, e caminho conferido contra escape de pasta. `UPLOAD_DIR` muda a pasta.
+- **Campos opcionais** (2026-09-21): destino exige só nome e estado; pacote, só título e destino. O slug é gerado do nome, com sufixo numérico quando já existe. Tudo que é opcional tem tratamento de ausência nas páginas públicas — capa vira `<CoverImage>` com fundo neutro, preço vira "Sob consulta", e blocos sem conteúdo não renderizam.
 - **Verificado de fato**: `tsc --noEmit`, `eslint` e `npm run build` passam; todas as rotas respondem 200 em dev e em produção; o layout foi conferido por captura headless, não só por status HTTP.
 
 ### No ar desde 2026-09-20
@@ -114,3 +116,8 @@ O `.env` precisa de `SESSION_SECRET` (mínimo 32 caracteres) além das quatro va
 - O ESLint aplica as regras de pureza do React: `Date.now()` dentro de um componente é **erro**, não aviso. Resolva na camada de dados (veja `listDeparturesGrouped` em `src/lib/admin-queries.ts`) e passe booleanos prontos para o componente.
 - Num arquivo `"use server"`, **todo export vira Server Action** e precisa ser `async`. Funções puras auxiliares vão para `src/lib/`.
 - O cookie de sessão é `Secure` quando `NODE_ENV=production`: em produção o login só funciona por HTTPS. Em dev fica sem `Secure`, senão o navegador descartaria o cookie em `http://localhost`.
+- **Uploads não podem ficar em `public/`**: o Next só serve o que estava lá no momento do build, então arquivo enviado depois nunca apareceria. Daí a rota `/api/uploads/[...path]`. A pasta `uploads/` é ignorada pelo git e sobrevive ao `deploy.sh`, que só faz `git pull`.
+- Em `src/lib/uploads.ts` os `path.resolve` levam `/* turbopackIgnore: true */`. Sem isso o Turbopack considera o caminho dinâmico demais, rastreia o projeto inteiro e empacota todo o código-fonte junto com o servidor.
+- **Apagar um destino ou pacote não apaga os arquivos enviados.** Eles ficam órfãos em `uploads/`. Não incomoda no volume atual; se virar problema, fazer uma rotina de limpeza que confira antes se a URL ainda é referenciada em `Destination.coverImage`, `Package.coverImage` ou `PackageImage.url`.
+- Campo `Json` anulável no Prisma não aceita `null` direto — seria ambíguo com o valor JSON `null`. Use `Prisma.DbNull` (veja `jsonOuNulo` em `pacotes/actions.ts`).
+- `spotsTotal = 0` significa **vagas ainda não definidas**, não esgotado. Painel e site tratam os dois casos de forma diferente; esgotado é só quando havia vagas e acabaram.

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { CheckCircle2, ChevronLeft } from "lucide-react";
 import { DestinationForm } from "@/components/admin/destination-form";
 import { getDestination } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/dal";
@@ -11,7 +11,7 @@ export const metadata = { title: "Editar destino" };
 export default async function EditarDestino(props: PageProps<"/admin/destinos/[id]">) {
   await requireAdmin();
 
-  const { id } = await props.params;
+  const [{ id }, searchParams] = await Promise.all([props.params, props.searchParams]);
   const destinationId = Number(id);
   if (!Number.isInteger(destinationId)) notFound();
 
@@ -27,6 +27,13 @@ export default async function EditarDestino(props: PageProps<"/admin/destinos/[i
         <ChevronLeft className="size-4" />
         Destinos
       </Link>
+
+      {(searchParams.ok === "criado" || searchParams.ok === "salvo") && (
+        <p className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+          <CheckCircle2 className="size-4 shrink-0" />
+          {searchParams.ok === "criado" ? "Destino criado." : "Alterações salvas."}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{destination.name}</h1>

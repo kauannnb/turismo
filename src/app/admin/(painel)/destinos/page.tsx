@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { AlertCircle, CheckCircle2, MapPin, Pencil, Plus, Star, Trash2 } from "lucide-react";
+import { CoverImage } from "@/components/cover-image";
 import { listDestinations } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/dal";
 import { deleteDestination } from "./actions";
@@ -54,12 +54,11 @@ export default async function AdminDestinos(props: PageProps<"/admin/destinos">)
           {destinations.map((d) => (
             <li key={d.id} className="overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
               <div className="relative aspect-[16/9]">
-                <Image
+                <CoverImage
                   src={d.coverImage}
                   alt={d.name}
-                  fill
                   sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
-                  className="object-cover"
+                  className="absolute inset-0 size-full object-cover"
                 />
                 {d.featured && (
                   <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-white">
@@ -75,8 +74,8 @@ export default async function AdminDestinos(props: PageProps<"/admin/destinos">)
                     {d.name} <span className="font-normal text-muted">· {d.state}</span>
                   </h2>
                   <p className="text-xs text-muted">
-                    {d.region} · {d._count.packages}{" "}
-                    {d._count.packages === 1 ? "pacote" : "pacotes"}
+                    {d.region ? `${d.region} · ` : ""}
+                    {d._count.packages} {d._count.packages === 1 ? "pacote" : "pacotes"}
                   </p>
                 </div>
 

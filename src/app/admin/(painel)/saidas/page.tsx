@@ -67,16 +67,20 @@ export default async function AdminSaidas() {
 
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        d.spotsAvailable <= 0
-                          ? "bg-red-100 text-red-700"
-                          : d.spotsAvailable <= 5
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-brand-light text-brand-dark"
+                        d.spotsTotal === 0
+                          ? "bg-surface-alt text-muted"
+                          : d.spotsAvailable <= 0
+                            ? "bg-red-100 text-red-700"
+                            : d.spotsAvailable <= 5
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-brand-light text-brand-dark"
                       }`}
                     >
-                      {d.spotsAvailable <= 0
-                        ? "Esgotado"
-                        : `${d.spotsAvailable}/${d.spotsTotal} vagas`}
+                      {d.spotsTotal === 0
+                        ? "vagas a definir"
+                        : d.spotsAvailable <= 0
+                          ? "Esgotado"
+                          : `${d.spotsAvailable}/${d.spotsTotal} vagas`}
                     </span>
 
                     <Link

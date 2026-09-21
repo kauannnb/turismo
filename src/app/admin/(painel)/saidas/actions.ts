@@ -15,33 +15,28 @@ function toUtcNoon(value: string) {
   return new Date(`${value}T12:00:00.000Z`);
 }
 
+/** Vagas entram zeradas: a data se cadastra primeiro, o número depois. */
+const vagas = (erro: string) =>
+  z.union([
+    z.literal("").transform(() => 0),
+    z.coerce.number({ error: erro }).int({ error: erro }).min(0, { error: erro }).max(500, { error: erro }),
+  ]);
+
 const DepartureSchema = z
   .object({
     packageId: z.coerce.number().int().positive({ error: "Escolha o pacote." }),
     departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Informe a data de saída." }),
     returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Informe a data de retorno." }),
-    spotsTotal: z.coerce
-      .number()
-      .int()
-      .min(1, { error: "Informe o total de vagas." })
-      .max(500, { error: "Total de vagas acima do limite." }),
-    // Vazio significa "todas livres" — o caso comum ao abrir uma data nova.
-    spotsAvailable: z.union([
-      z.literal("").transform(() => null),
-      z.coerce.number().int().min(0, { error: "Vagas disponíveis não pode ser negativo." }),
-    ]),
+    spotsTotal: vagas("Total de vagas deve ser um número de 0 a 500."),
+    spotsAvailable: vagas("Vagas livres devem ser um número de 0 a 500."),
     price: z.union([z.literal(""), z.coerce.number().positive()]).optional(),
   })
-  .transform((d) => ({
-    ...d,
-    spotsAvailable: d.spotsAvailable ?? d.spotsTotal,
-  }))
   .refine((d) => d.returnDate >= d.departureDate, {
     error: "O retorno não pode ser antes da saída.",
     path: ["returnDate"],
   })
   .refine((d) => d.spotsAvailable <= d.spotsTotal, {
-    error: "Vagas disponíveis não podem passar do total.",
+    error: "Vagas livres não podem passar do total.",
     path: ["spotsAvailable"],
   });
 

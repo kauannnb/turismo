@@ -98,10 +98,9 @@ export default async function EditarPacote(props: PageProps<"/admin/pacotes/[id]
           submitLabel="Salvar alterações"
           initial={{
             title: pkg.title,
-            slug: pkg.slug,
             shortDescription: pkg.shortDescription,
             description: pkg.description,
-            price: pkg.price.toString(),
+            price: pkg.price ? pkg.price.toString() : null,
             durationDays: pkg.durationDays,
             departureCity: pkg.departureCity,
             coverImage: pkg.coverImage,
@@ -120,7 +119,7 @@ export default async function EditarPacote(props: PageProps<"/admin/pacotes/[id]
         <h2 className="mb-4 font-semibold">Datas de saída</h2>
         <DepartureManager
           packageId={pkg.id}
-          basePrice={pkg.price.toString()}
+          basePrice={pkg.price ? pkg.price.toString() : null}
           departures={departures.map((d) => ({
             id: d.id,
             departureDate: d.departureDate,

@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays, CheckCircle2, ImageIcon, Package, Pencil, Plus } from "lucide-react";
+import { CoverImage } from "@/components/cover-image";
 import { listPackages } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/dal";
 import { formatPrice } from "@/lib/format";
@@ -50,7 +50,12 @@ export default async function AdminPacotes(props: PageProps<"/admin/pacotes">) {
               className="flex flex-wrap items-center gap-4 rounded-2xl bg-surface p-3 ring-1 ring-border"
             >
               <div className="relative size-16 shrink-0 overflow-hidden rounded-xl">
-                <Image src={p.coverImage} alt={p.title} fill sizes="64px" className="object-cover" />
+                <CoverImage
+                  src={p.coverImage}
+                  alt={p.title}
+                  sizes="64px"
+                  className="absolute inset-0 size-full object-cover"
+                />
               </div>
 
               <div className="min-w-0 flex-1">
@@ -68,10 +73,13 @@ export default async function AdminPacotes(props: PageProps<"/admin/pacotes">) {
                   )}
                 </div>
                 <p className="mt-0.5 truncate text-xs text-muted">
-                  {p.destination.name} · {p.destination.state} · {p.category.name}
+                  {p.destination.name} · {p.destination.state}
+                  {p.category ? ` · ${p.category.name}` : ""}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted">
-                  <span className="font-semibold text-brand-dark">{formatPrice(p.price)}</span>
+                  <span className="font-semibold text-brand-dark">
+                    {p.price ? formatPrice(p.price) : "sem preço"}
+                  </span>
                   <span className="flex items-center gap-1">
                     <CalendarDays className="size-3.5" />
                     {p._count.departures} {p._count.departures === 1 ? "saída" : "saídas"}

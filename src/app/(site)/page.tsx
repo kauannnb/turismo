@@ -115,7 +115,9 @@ export default async function Home() {
 
             <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-white/50">Mais procurados:</span>
-              {featuredDestinations.slice(0, 4).map((d) => (
+              {/* Três cabem numa linha dentro do bloco de texto do hero;
+                  o quarto quebrava e desalinhava o conjunto. */}
+              {featuredDestinations.slice(0, 3).map((d) => (
                 <Link
                   key={d.slug}
                   href={`/destinos/${d.slug}`}

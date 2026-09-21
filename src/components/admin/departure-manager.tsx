@@ -25,7 +25,7 @@ export function DepartureManager({
 }: {
   packageId: number;
   departures: DepartureRow[];
-  basePrice: string;
+  basePrice: string | null;
 }) {
   const [state, formAction] = useActionState<FormState, FormData>(createDeparture, undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -50,21 +50,26 @@ export function DepartureManager({
           <Field label="Retorno" name="returnDate" errors={errors?.returnDate}>
             <Input name="returnDate" type="date" required />
           </Field>
-          <Field label="Total de vagas" name="spotsTotal" errors={errors?.spotsTotal}>
-            <Input name="spotsTotal" type="number" min="1" required />
+          <Field
+            label="Total de vagas"
+            name="spotsTotal"
+            hint="Opcional"
+            errors={errors?.spotsTotal}
+          >
+            <Input name="spotsTotal" type="number" min="0" placeholder="0" />
           </Field>
           <Field
             label="Vagas livres"
             name="spotsAvailable"
-            hint="Vazio = todas livres"
+            hint="Opcional"
             errors={errors?.spotsAvailable}
           >
-            <Input name="spotsAvailable" type="number" min="0" placeholder="opcional" />
+            <Input name="spotsAvailable" type="number" min="0" placeholder="0" />
           </Field>
           <Field
             label="Preço da data"
             name="price"
-            hint={`Vazio = ${formatPrice(basePrice)}`}
+            hint={basePrice ? `Vazio = ${formatPrice(basePrice)}` : "Opcional"}
             errors={errors?.price}
           >
             <Input name="price" type="number" step="0.01" min="0" placeholder="opcional" />
@@ -103,7 +108,10 @@ export function DepartureManager({
                     {d.isPast && <span className="ml-2 text-xs text-muted">(passada)</span>}
                   </p>
                   <p className="text-xs text-muted">
-                    {d.spotsAvailable}/{d.spotsTotal} vagas
+                    {/* Total zero significa "ainda não definido", não esgotado. */}
+                    {d.spotsTotal === 0
+                      ? "vagas a definir"
+                      : `${d.spotsAvailable}/${d.spotsTotal} vagas`}
                     {d.price ? ` · ${formatPrice(d.price)}` : ""}
                   </p>
                 </div>

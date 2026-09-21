@@ -7,15 +7,18 @@ datasource db {
   provider = "mysql"
 }
 
+// Só nome e estado são obrigatórios: dá para cadastrar um destino em dez
+// segundos e completar depois. Tudo que é opcional aqui precisa ter
+// tratamento de ausência nas páginas públicas.
 model Destination {
   id          Int       @id @default(autoincrement())
   name        String
   slug        String    @unique
   state       String    @db.VarChar(2)
-  region      String
-  description String    @db.Text
+  region      String?
+  description String?   @db.Text
   // URLs de CDN passam fácil dos 191 caracteres do VARCHAR padrão do Prisma.
-  coverImage  String    @db.VarChar(500)
+  coverImage  String?   @db.VarChar(500)
   featured    Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -29,29 +32,32 @@ model Category {
   packages Package[]
 }
 
+// Só título e destino são obrigatórios — o pacote nasce como rascunho e vai
+// sendo completado. Como `active` é true por padrão, um pacote incompleto
+// aparece no site; por isso as páginas públicas tratam cada ausência.
 model Package {
   id               Int            @id @default(autoincrement())
   title            String
   slug             String         @unique
   // O formulário do painel aceita até 200 caracteres; o VARCHAR padrão
   // seria 191 e cortaria antes disso.
-  shortDescription String         @db.VarChar(255)
-  description      String         @db.Text
-  price            Decimal        @db.Decimal(10, 2)
-  durationDays     Int
-  departureCity    String
-  coverImage       String         @db.VarChar(500)
-  included         Json
-  notIncluded      Json
-  itinerary        Json
+  shortDescription String?        @db.VarChar(255)
+  description      String?        @db.Text
+  price            Decimal?       @db.Decimal(10, 2)
+  durationDays     Int?
+  departureCity    String?
+  coverImage       String?        @db.VarChar(500)
+  included         Json?
+  notIncluded      Json?
+  itinerary        Json?
   featured         Boolean        @default(false)
   active           Boolean        @default(true)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   destinationId    Int
   destination      Destination    @relation(fields: [destinationId], references: [id])
-  categoryId       Int
-  category         Category       @relation(fields: [categoryId], references: [id])
+  categoryId       Int?
+  category         Category?      @relation(fields: [categoryId], references: [id])
   images           PackageImage[]
   departures       Departure[]
   testimonials     Testimonial[]
@@ -63,7 +69,7 @@ model Package {
 model PackageImage {
   id        Int     @id @default(autoincrement())
   url       String  @db.VarChar(500)
-  alt       String
+  alt       String  @default("")
   order     Int     @default(0)
   packageId Int
   package   Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
@@ -75,8 +81,9 @@ model Departure {
   id             Int      @id @default(autoincrement())
   departureDate  DateTime
   returnDate     DateTime
-  spotsTotal     Int
-  spotsAvailable Int
+  // Nascem zeradas: a data entra primeiro, as vagas se define depois.
+  spotsTotal     Int      @default(0)
+  spotsAvailable Int      @default(0)
   price          Decimal? @db.Decimal(10, 2)
   packageId      Int
   package        Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)

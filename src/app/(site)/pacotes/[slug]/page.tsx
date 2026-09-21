@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CoverImage } from "@/components/cover-image";
 import {
   CalendarDays,
   Check,
@@ -40,13 +41,15 @@ export async function generateMetadata(props: PageProps<"/pacotes/[slug]">): Pro
   const { slug } = await props.params;
   const pkg = await getPackageBySlug(slug);
   if (!pkg) return {};
+  const description = pkg.shortDescription ?? undefined;
   return {
     title: pkg.title,
-    description: pkg.shortDescription,
+    description,
     openGraph: {
       title: pkg.title,
-      description: pkg.shortDescription,
-      images: [pkg.coverImage],
+      description,
+      // Sem capa não há o que mostrar na prévia do link.
+      images: pkg.coverImage ? [pkg.coverImage] : undefined,
     },
   };
 }
@@ -61,7 +64,11 @@ export default async function PackagePage(props: PageProps<"/pacotes/[slug]">) {
   const included = asStringList(pkg.included);
   const notIncluded = asStringList(pkg.notIncluded);
   const itinerary = asItinerary(pkg.itinerary).sort((a, b) => a.day - b.day);
-  const gallery = [{ url: pkg.coverImage, alt: pkg.title }, ...pkg.images];
+  // A capa abre a galeria, quando existe; o resto vem da tabela de imagens.
+  const gallery = [
+    ...(pkg.coverImage ? [{ url: pkg.coverImage, alt: pkg.title }] : []),
+    ...pkg.images,
+  ];
   const nextDeparture = pkg.departures[0];
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const pageUrl = `${siteUrl}/pacotes/${pkg.slug}`;
@@ -76,13 +83,13 @@ export default async function PackagePage(props: PageProps<"/pacotes/[slug]">) {
   return (
     <>
       <section className="relative flex min-h-[460px] items-end overflow-hidden">
-        <Image
+        <CoverImage
           src={pkg.coverImage}
           alt={pkg.title}
-          fill
           priority
           sizes="100vw"
-          className="object-cover"
+          showIcon={false}
+          className="absolute inset-0 size-full bg-brand-dark object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/25" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/10 to-transparent" />
@@ -103,26 +110,34 @@ export default async function PackagePage(props: PageProps<"/pacotes/[slug]">) {
               {pkg.destination.name}
             </Link>
           </nav>
-          <span className="inline-block rounded-full border border-white/25 px-3 py-1 text-xs font-medium text-white/80">
-            {pkg.category.name}
-          </span>
+          {pkg.category && (
+            <span className="inline-block rounded-full border border-white/25 px-3 py-1 text-xs font-medium text-white/80">
+              {pkg.category.name}
+            </span>
+          )}
           <h1 className="mt-4 max-w-3xl font-display text-4xl font-semibold leading-[1.08] sm:text-5xl">
             {pkg.title}
           </h1>
-          <p className="mt-4 max-w-2xl leading-relaxed text-white/80">{pkg.shortDescription}</p>
+          {pkg.shortDescription && (
+            <p className="mt-4 max-w-2xl leading-relaxed text-white/80">{pkg.shortDescription}</p>
+          )}
           <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70">
             <div className="flex items-center gap-1.5">
               <MapPin className="size-4" />
               <dd>{pkg.destination.name}, {pkg.destination.state}</dd>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Clock className="size-4" />
-              <dd>{formatDuration(pkg.durationDays)}</dd>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Users className="size-4" />
-              <dd>Saída de {pkg.departureCity}</dd>
-            </div>
+            {pkg.durationDays && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="size-4" />
+                <dd>{formatDuration(pkg.durationDays)}</dd>
+              </div>
+            )}
+            {pkg.departureCity && (
+              <div className="flex items-center gap-1.5">
+                <Users className="size-4" />
+                <dd>Saída de {pkg.departureCity}</dd>
+              </div>
+            )}
             {nextDeparture && (
               <div className="flex items-center gap-1.5">
                 <CalendarDays className="size-4" />
@@ -142,7 +157,7 @@ export default async function PackagePage(props: PageProps<"/pacotes/[slug]">) {
               <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
                 <Image
                   src={gallery[0].url}
-                  alt={gallery[0].alt}
+                  alt={gallery[0].alt || pkg.title}
                   fill
                   sizes="(min-width: 1024px) 60vw, 100vw"
                   className="object-cover"
@@ -170,14 +185,19 @@ export default async function PackagePage(props: PageProps<"/pacotes/[slug]">) {
             </section>
           )}
 
-          <section>
-            <h2 className="mb-4 text-2xl font-semibold">Sobre o pacote</h2>
-            <div className="space-y-4 leading-relaxed text-muted">
-              {pkg.description.split("\n").filter(Boolean).map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
-            </div>
-          </section>
+          {pkg.description && (
+            <section>
+              <h2 className="mb-4 text-2xl font-semibold">Sobre o pacote</h2>
+              <div className="space-y-4 leading-relaxed text-muted">
+                {pkg.description
+                  .split("\n")
+                  .filter(Boolean)
+                  .map((p, i) => (
+                    <p key={i}>{p}</p>
+                  ))}
+              </div>
+            </section>
+          )}
 
           {(included.length > 0 || notIncluded.length > 0) && (
             <section className="grid gap-6 sm:grid-cols-2">
@@ -241,7 +261,11 @@ export default async function PackagePage(props: PageProps<"/pacotes/[slug]">) {
             ) : (
               <ul className="flex flex-col gap-3">
                 {pkg.departures.map((d) => {
-                  const soldOut = d.spotsAvailable <= 0;
+                  // spotsTotal zero = vagas ainda não definidas. Só é
+                  // esgotado quando havia vagas e elas acabaram.
+                  const semControle = d.spotsTotal === 0;
+                  const soldOut = !semControle && d.spotsAvailable <= 0;
+                  const valor = d.price ?? pkg.price;
                   return (
                     <li
                       key={d.id}
@@ -255,16 +279,20 @@ export default async function PackagePage(props: PageProps<"/pacotes/[slug]">) {
                             {formatShortDate(d.returnDate)}
                           </span>
                         </p>
-                        <p className="mt-1 text-xs text-muted">
-                          {soldOut
-                            ? "Esgotado"
-                            : `${d.spotsAvailable} de ${d.spotsTotal} vagas disponíveis`}
-                        </p>
+                        {!semControle && (
+                          <p className="mt-1 text-xs text-muted">
+                            {soldOut
+                              ? "Esgotado"
+                              : `${d.spotsAvailable} de ${d.spotsTotal} vagas disponíveis`}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="font-display text-xl font-semibold">
-                          {formatPrice(d.price ?? pkg.price)}
-                        </span>
+                        {valor && (
+                          <span className="font-display text-xl font-semibold">
+                            {formatPrice(valor)}
+                          </span>
+                        )}
                         {soldOut ? (
                           <span className="rounded-full bg-surface-alt px-4 py-2.5 text-sm font-medium text-muted">
                             Esgotado
@@ -316,19 +344,32 @@ export default async function PackagePage(props: PageProps<"/pacotes/[slug]">) {
 
         <aside className="lg:sticky lg:top-[92px] lg:h-fit">
           <div className="rounded-2xl border border-border bg-surface p-6 shadow-soft">
-            <span className="block text-xs text-muted">a partir de</span>
-            <p className="font-display text-4xl font-semibold">{formatPrice(pkg.price)}</p>
-            <span className="text-xs text-muted">por pessoa</span>
+            {pkg.price ? (
+              <>
+                <span className="block text-xs text-muted">a partir de</span>
+                <p className="font-display text-4xl font-semibold">{formatPrice(pkg.price)}</p>
+                <span className="text-xs text-muted">por pessoa</span>
+              </>
+            ) : (
+              <>
+                <p className="font-display text-3xl font-semibold">Sob consulta</p>
+                <span className="text-xs text-muted">Peça o valor pelo WhatsApp</span>
+              </>
+            )}
 
             <dl className="mt-6 space-y-3 border-t border-border pt-5 text-sm">
-              <div className="flex items-center gap-2">
-                <Clock className="size-4 shrink-0 text-brand" />
-                <dd>{formatDuration(pkg.durationDays)}</dd>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="size-4 shrink-0 text-brand" />
-                <dd>Saída de {pkg.departureCity}</dd>
-              </div>
+              {pkg.durationDays && (
+                <div className="flex items-center gap-2">
+                  <Clock className="size-4 shrink-0 text-brand" />
+                  <dd>{formatDuration(pkg.durationDays)}</dd>
+                </div>
+              )}
+              {pkg.departureCity && (
+                <div className="flex items-center gap-2">
+                  <Users className="size-4 shrink-0 text-brand" />
+                  <dd>Saída de {pkg.departureCity}</dd>
+                </div>
+              )}
               {nextDeparture && (
                 <div className="flex items-center gap-2">
                   <CalendarDays className="size-4 shrink-0 text-brand" />

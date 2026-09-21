@@ -1,12 +1,12 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { CoverImage } from "@/components/cover-image";
 
 type Props = {
   name: string;
   slug: string;
   state: string;
-  coverImage: string;
+  coverImage: string | null;
   packageCount: number;
   size?: "sm" | "lg";
 };
@@ -26,12 +26,11 @@ export function DestinationCard({
         size === "lg" ? "aspect-[4/5]" : "aspect-[5/4]"
       }`}
     >
-      <Image
+      <CoverImage
         src={coverImage}
         alt={name}
-        fill
         sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-        className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+        className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
       />
 
       {/* Degradê forte embaixo (onde fica o texto) e quase nada em cima, para

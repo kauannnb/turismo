@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import { CoverImage } from "@/components/cover-image";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { Suspense } from "react";
@@ -21,7 +21,7 @@ export async function generateMetadata(props: PageProps<"/destinos/[slug]">): Pr
   if (!destination) return {};
   return {
     title: `Pacotes para ${destination.name}`,
-    description: destination.description,
+    description: destination.description ?? undefined,
   };
 }
 
@@ -55,13 +55,13 @@ export default async function DestinationPage(props: PageProps<"/destinos/[slug]
   return (
     <>
       <section className="relative flex min-h-[420px] items-end overflow-hidden">
-        <Image
+        <CoverImage
           src={destination.coverImage}
           alt={destination.name}
-          fill
           priority
           sizes="100vw"
-          className="object-cover"
+          showIcon={false}
+          className="absolute inset-0 size-full bg-brand-dark object-cover"
         />
         {/* Dois véus: um vertical, que segura o pé, e um da esquerda, onde o
             texto fica. Só o vertical não dá conta de foto clara. */}
@@ -80,12 +80,17 @@ export default async function DestinationPage(props: PageProps<"/destinos/[slug]
             <span className="text-white/90">{destination.name}</span>
           </nav>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
-            {destination.state} · {destination.region}
+            {destination.state}
+            {destination.region ? ` · ${destination.region}` : ""}
           </p>
           <h1 className="mt-3 font-display text-4xl font-semibold sm:text-6xl">
             {destination.name}
           </h1>
-          <p className="mt-4 max-w-2xl leading-relaxed text-white/80">{destination.description}</p>
+          {destination.description && (
+            <p className="mt-4 max-w-2xl leading-relaxed text-white/80">
+              {destination.description}
+            </p>
+          )}
         </div>
       </section>
 

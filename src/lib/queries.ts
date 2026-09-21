@@ -24,7 +24,7 @@ export function packageCardSelect() {
       where: { departureDate: { gte: new Date() } },
       orderBy: { departureDate: "asc" },
       take: 1,
-      select: { departureDate: true, spotsAvailable: true },
+      select: { departureDate: true, spotsAvailable: true, spotsTotal: true },
     },
   } satisfies Prisma.PackageSelect;
 }

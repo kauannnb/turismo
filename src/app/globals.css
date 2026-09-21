@@ -41,7 +41,7 @@
   --color-accent-dark: var(--accent-dark);
   --color-accent-light: var(--accent-light);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body);
   --font-display: var(--font-display);
 
   --shadow-soft: var(--shadow-soft);

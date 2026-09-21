@@ -5,88 +5,105 @@ import { redirect } from "next/navigation";
 import * as z from "zod";
 import { requireAdmin } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import {
-  ALLOWED_IMAGE_HOSTS,
-  isAllowedImageUrl,
-  isUniqueViolation,
-  slugify,
-  type FormState,
-} from "@/lib/form";
+import { Prisma } from "@/generated/prisma/client";
+import { slugify, uniqueSlug, type FormState } from "@/lib/form";
+import { resolveImageField, saveUpload } from "@/lib/uploads";
 
-const imageUrl = z.string().trim().refine(isAllowedImageUrl, {
-  error: `A imagem precisa ser uma URL https de: ${ALLOWED_IMAGE_HOSTS.join(", ")}.`,
-});
+/**
+ * Campo Json anulável no Prisma não aceita `null` direto — isso seria
+ * ambíguo entre "NULL no banco" e "o valor JSON null". `Prisma.DbNull`
+ * é o que grava NULL de verdade.
+ */
+function jsonOuNulo(value: unknown[] | null) {
+  return value === null ? Prisma.DbNull : (value as Prisma.InputJsonValue);
+}
+
+/**
+ * Só título e destino são obrigatórios. Um pacote nasce como rascunho e vai
+ * sendo completado — por isso quase tudo aceita vazio e vira null.
+ */
+const vazio = (v: unknown) => {
+  const s = typeof v === "string" ? v.trim() : "";
+  return s === "" ? null : s;
+};
+
+/** Campo numérico que aceita vazio. `""` vira null em vez de erro. */
+const numeroOpcional = (opts: { inteiro?: boolean; max?: number; erro: string }) =>
+  z.union([
+    z.literal("").transform(() => null),
+    z.literal("null").transform(() => null),
+    (() => {
+      let n = z.coerce.number({ error: opts.erro }).positive({ error: opts.erro });
+      if (opts.inteiro) n = n.int({ error: opts.erro });
+      if (opts.max) n = n.max(opts.max, { error: opts.erro });
+      return n;
+    })(),
+  ]);
 
 const PackageSchema = z.object({
   title: z.string().trim().min(3, { error: "Informe o título do pacote." }),
-  slug: z
-    .string()
-    .trim()
-    .regex(/^[a-z0-9-]+$/, { error: "Use apenas letras minúsculas, números e hífen." }),
+  destinationId: z.coerce.number().int().positive({ error: "Escolha o destino." }),
+  categoryId: z.union([
+    z.literal("").transform(() => null),
+    z.coerce.number().int().positive(),
+  ]),
   shortDescription: z
     .string()
     .trim()
-    .min(10, { error: "Escreva uma chamada de pelo menos 10 caracteres." })
-    .max(200, { error: "A chamada deve ter no máximo 200 caracteres." }),
-  description: z.string().trim().min(30, { error: "Descreva o pacote com mais detalhe." }),
-  price: z.coerce
-    .number({ error: "Informe um preço válido." })
-    .positive({ error: "O preço deve ser maior que zero." })
-    .max(99_999_999, { error: "Preço acima do limite." }),
-  durationDays: z.coerce
-    .number({ error: "Informe a duração." })
-    .int({ error: "A duração deve ser um número inteiro de dias." })
-    .min(1, { error: "Mínimo de 1 dia." })
-    .max(90, { error: "Máximo de 90 dias." }),
-  departureCity: z.string().trim().min(2, { error: "Informe a cidade de saída." }),
-  coverImage: imageUrl,
-  destinationId: z.coerce.number().int().positive({ error: "Escolha o destino." }),
-  categoryId: z.coerce.number().int().positive({ error: "Escolha a categoria." }),
-  included: z.array(z.string().trim().min(1)),
-  notIncluded: z.array(z.string().trim().min(1)),
-  itinerary: z.array(
-    z.object({
-      day: z.number().int().positive(),
-      title: z.string().trim().min(1, { error: "Cada dia do roteiro precisa de um título." }),
-      description: z.string().trim().min(1, { error: "Descreva o que acontece no dia." }),
-    }),
-  ),
+    .max(200, { error: "A chamada deve ter no máximo 200 caracteres." })
+    .nullable(),
+  description: z.string().nullable(),
+  price: numeroOpcional({ max: 99_999_999, erro: "Informe um preço válido ou deixe vazio." }),
+  durationDays: numeroOpcional({
+    inteiro: true,
+    max: 90,
+    erro: "Informe a duração em dias (1 a 90) ou deixe vazio.",
+  }),
+  departureCity: z.string().nullable(),
+  included: z.array(z.string()).nullable(),
+  notIncluded: z.array(z.string()).nullable(),
+  itinerary: z
+    .array(
+      z.object({
+        day: z.number().int().positive(),
+        title: z.string().trim(),
+        description: z.string().trim(),
+      }),
+    )
+    .nullable(),
   featured: z.boolean(),
   active: z.boolean(),
 });
 
 /** Textarea com um item por linha → array, descartando linhas vazias. */
 function lines(value: FormDataEntryValue | null) {
-  return String(value ?? "")
+  const list = String(value ?? "")
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
+  return list.length > 0 ? list : null;
 }
 
 function parse(formData: FormData) {
-  const title = String(formData.get("title") ?? "");
-  const rawSlug = String(formData.get("slug") ?? "").trim();
-
-  let itinerary: unknown = [];
+  let itinerary: unknown = null;
   try {
-    // O formulário manda o roteiro como JSON num campo oculto: é uma lista de
-    // objetos, não dá para representar bem em campos soltos.
-    itinerary = JSON.parse(String(formData.get("itinerary") ?? "[]"));
+    // O formulário manda o roteiro como JSON num campo oculto: é uma lista
+    // de objetos, não dá para representar bem em campos soltos.
+    const raw = JSON.parse(String(formData.get("itinerary") ?? "[]"));
+    itinerary = Array.isArray(raw) && raw.length > 0 ? raw : null;
   } catch {
-    itinerary = [];
+    itinerary = null;
   }
 
   return PackageSchema.safeParse({
-    title,
-    slug: rawSlug ? slugify(rawSlug) : slugify(title),
-    shortDescription: String(formData.get("shortDescription") ?? ""),
-    description: String(formData.get("description") ?? ""),
-    price: String(formData.get("price") ?? ""),
-    durationDays: String(formData.get("durationDays") ?? ""),
-    departureCity: String(formData.get("departureCity") ?? ""),
-    coverImage: String(formData.get("coverImage") ?? ""),
+    title: String(formData.get("title") ?? ""),
     destinationId: String(formData.get("destinationId") ?? ""),
     categoryId: String(formData.get("categoryId") ?? ""),
+    shortDescription: vazio(formData.get("shortDescription")),
+    description: vazio(formData.get("description")),
+    price: String(formData.get("price") ?? ""),
+    durationDays: String(formData.get("durationDays") ?? ""),
+    departureCity: vazio(formData.get("departureCity")),
     included: lines(formData.get("included")),
     notIncluded: lines(formData.get("notIncluded")),
     itinerary,
@@ -114,17 +131,28 @@ export async function createPackage(_prev: FormState, formData: FormData): Promi
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   }
 
-  let created;
-  try {
-    created = await prisma.package.create({ data: parsed.data, select: { id: true } });
-  } catch (err) {
-    if (isUniqueViolation(err)) {
-      return { fieldErrors: { slug: ["Já existe um pacote com esse endereço (slug)."] } };
-    }
-    throw err;
-  }
+  const image = await resolveImageField(formData, "coverImage");
+  if ("error" in image) return { fieldErrors: { coverImage: [image.error] } };
 
-  await revalidatePackage(parsed.data.slug, parsed.data.destinationId);
+  const slug = await uniqueSlug(slugify(parsed.data.title), (s) =>
+    prisma.package.findUnique({ where: { slug: s }, select: { id: true } }),
+  );
+
+  const { included, notIncluded, itinerary, ...rest } = parsed.data;
+
+  const created = await prisma.package.create({
+    data: {
+      ...rest,
+      slug,
+      coverImage: image.value,
+      included: jsonOuNulo(included),
+      notIncluded: jsonOuNulo(notIncluded),
+      itinerary: jsonOuNulo(itinerary),
+    },
+    select: { id: true },
+  });
+
+  await revalidatePackage(slug, parsed.data.destinationId);
   // Vai direto para a edição: é lá que se cadastram fotos e datas de saída.
   redirect(`/admin/pacotes/${created.id}?ok=criado`);
 }
@@ -141,26 +169,32 @@ export async function updatePackage(
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   }
 
+  const image = await resolveImageField(formData, "coverImage");
+  if ("error" in image) return { fieldErrors: { coverImage: [image.error] } };
+
   const before = await prisma.package.findUnique({
     where: { id },
     select: { slug: true, destinationId: true },
   });
 
-  try {
-    await prisma.package.update({ where: { id }, data: parsed.data });
-  } catch (err) {
-    if (isUniqueViolation(err)) {
-      return { fieldErrors: { slug: ["Já existe um pacote com esse endereço (slug)."] } };
-    }
-    throw err;
-  }
+  const { included, notIncluded, itinerary, ...rest } = parsed.data;
 
-  await revalidatePackage(parsed.data.slug, parsed.data.destinationId);
+  await prisma.package.update({
+    where: { id },
+    data: {
+      ...rest,
+      coverImage: image.value,
+      included: jsonOuNulo(included),
+      notIncluded: jsonOuNulo(notIncluded),
+      itinerary: jsonOuNulo(itinerary),
+    },
+  });
+
   if (before) {
-    if (before.slug !== parsed.data.slug) revalidatePath(`/pacotes/${before.slug}`);
+    await revalidatePackage(before.slug, before.destinationId);
     // Mudou de destino? A página do destino antigo também precisa atualizar.
     if (before.destinationId !== parsed.data.destinationId) {
-      await revalidatePackage(parsed.data.slug, before.destinationId);
+      await revalidatePackage(before.slug, parsed.data.destinationId);
     }
   }
 
@@ -189,24 +223,16 @@ export async function deletePackage(formData: FormData) {
 
 // --- Fotos da galeria -------------------------------------------------------
 
-const ImageSchema = z.object({
-  url: imageUrl,
-  alt: z.string().trim().min(3, { error: "Descreva a foto (acessibilidade e SEO)." }),
-});
-
-export async function addPackageImage(
+export async function addPackageImages(
   packageId: number,
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireAdmin();
 
-  const parsed = ImageSchema.safeParse({
-    url: String(formData.get("url") ?? ""),
-    alt: String(formData.get("alt") ?? ""),
-  });
-  if (!parsed.success) {
-    return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  const files = formData.getAll("fotos").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) {
+    return { error: "Escolha pelo menos uma imagem." };
   }
 
   const last = await prisma.packageImage.findFirst({
@@ -214,10 +240,20 @@ export async function addPackageImage(
     orderBy: { order: "desc" },
     select: { order: true },
   });
+  let order = (last?.order ?? 0) + 1;
 
-  await prisma.packageImage.create({
-    data: { ...parsed.data, packageId, order: (last?.order ?? 0) + 1 },
-  });
+  const falhas: string[] = [];
+
+  for (const file of files) {
+    const saved = await saveUpload(file);
+    if ("error" in saved) {
+      falhas.push(`${file.name}: ${saved.error}`);
+      continue;
+    }
+    await prisma.packageImage.create({
+      data: { url: saved.url, alt: "", packageId, order: order++ },
+    });
+  }
 
   const pkg = await prisma.package.findUnique({
     where: { id: packageId },
@@ -225,7 +261,25 @@ export async function addPackageImage(
   });
   if (pkg) revalidatePath(`/pacotes/${pkg.slug}`);
   revalidatePath(`/admin/pacotes/${packageId}`);
-  return undefined;
+
+  // Parciais contam: as que deram certo já foram gravadas.
+  return falhas.length > 0 ? { error: falhas.join(" · ") } : undefined;
+}
+
+export async function updateImageAlt(formData: FormData) {
+  await requireAdmin();
+
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id)) return;
+
+  const image = await prisma.packageImage.update({
+    where: { id },
+    data: { alt: String(formData.get("alt") ?? "").trim().slice(0, 180) },
+    select: { packageId: true, package: { select: { slug: true } } },
+  });
+
+  revalidatePath(`/pacotes/${image.package.slug}`);
+  revalidatePath(`/admin/pacotes/${image.packageId}`);
 }
 
 export async function removePackageImage(formData: FormData) {
