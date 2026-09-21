@@ -1,9 +1,5 @@
-﻿-- ATENÇÃO: nomes de tabela em PascalCase, exatamente como o schema define.
--- O MariaDB do Windows usa lower_case_table_names=1 e guarda tudo minúsculo,
--- então o Prisma gera estas linhas em minúsculas ao comparar com o banco
--- local. No Linux (lower_case_table_names=0) isso falha com
--- "Table 'turismo.destination' doesn't exist". Conferir a caixa dos nomes
--- sempre que gerar uma migração no Windows.
+-- Nomes de tabela em PascalCase de proposito: o Linux e case-sensitive.
+-- Ver "Caixa dos nomes de tabela" no HANDOFF.md.
 
 -- AlterTable
 ALTER TABLE `Destination` MODIFY `coverImage` VARCHAR(500) NOT NULL;

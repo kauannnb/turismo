@@ -1,4 +1,4 @@
-﻿# Colocando o site no ar — VPS da Hostinger, passo a passo
+# Colocando o site no ar — VPS da Hostinger, passo a passo
 
 Guia escrito pra quem **nunca mexeu com VPS**. Cada passo diz o que você digita, o que deve acontecer, e o que fazer se não acontecer.
 

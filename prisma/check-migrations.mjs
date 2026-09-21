@@ -33,12 +33,21 @@ if (!existsSync(migrationsDir)) {
 }
 
 const problems = [];
+const bomFiles = [];
 
 for (const entry of readdirSync(migrationsDir, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
 
   const file = join(migrationsDir, entry.name, "migration.sql");
   if (!existsSync(file)) continue;
+
+  // BOM no começo do arquivo: o MariaDB recebe os bytes colados na primeira
+  // instrução e responde "You have an error in your SQL syntax (1064)".
+  // `Set-Content -Encoding utf8` do PowerShell 5.1 grava BOM sem avisar.
+  const bytes = readFileSync(file);
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+    bomFiles.push(`${entry.name}/migration.sql`);
+  }
 
   const sql = readFileSync(file, "utf8");
 
@@ -60,18 +69,37 @@ for (const entry of readdirSync(migrationsDir, { withFileTypes: true })) {
   });
 }
 
-if (problems.length === 0) {
-  console.log(`Caixa dos nomes de tabela conferida em ${models.length} models: tudo certo.`);
+if (problems.length === 0 && bomFiles.length === 0) {
+  console.log(
+    `Migrações conferidas (${models.length} models): caixa dos nomes e codificação em ordem.`,
+  );
   process.exit(0);
 }
 
-console.error("\nNomes de tabela com a caixa errada nas migrações:\n");
-for (const p of problems) {
-  console.error(`  ${p.file}:${p.line}  \`${p.found}\`  ->  \`${p.expected}\``);
+if (bomFiles.length > 0) {
+  console.error("\nMigrações gravadas com BOM (o MariaDB recusa com erro 1064):\n");
+  for (const f of bomFiles) console.error(`  ${f}`);
+  console.error(
+    "\nRegrave em UTF-8 sem BOM. No PowerShell, `Set-Content -Encoding utf8`\n" +
+      "grava COM BOM; use:\n" +
+      '  [System.IO.File]::WriteAllText($p, $txt, (New-Object System.Text.UTF8Encoding $false))\n',
+  );
 }
+
+if (problems.length > 0) {
+  console.error("\nNomes de tabela com a caixa errada nas migrações:\n");
+  for (const p of problems) {
+    console.error(`  ${p.file}:${p.line}  \`${p.found}\`  ->  \`${p.expected}\``);
+  }
+  console.error(
+    "\nIsso passa no Windows e quebra no Linux da VPS. Corrija a caixa no arquivo\n" +
+      ".sql antes de commitar.\n",
+  );
+}
+
 console.error(
-  "\nIsso passa no Windows e quebra no Linux da VPS. Corrija a caixa no arquivo\n" +
-    ".sql antes de commitar. Se a migração já foi aplicada no banco local, apague\n" +
-    "a linha dela em _prisma_migrations e rode `npm run db:deploy` de novo.\n",
+  "Se a migração já foi aplicada no banco local, apague a linha dela em\n" +
+    "_prisma_migrations e rode `npm run db:deploy` de novo — alterar o arquivo\n" +
+    "muda o checksum que o Prisma guarda.\n",
 );
 process.exit(1);
