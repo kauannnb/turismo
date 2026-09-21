@@ -427,6 +427,24 @@ Isso puxa do GitHub, instala as dependências novas (`bcryptjs`, `jose`,
 `server-only`), aplica a migração que alarga as colunas de URL, reconstrói e
 recarrega o PM2.
 
+> **Se o passo 2 falhar com `Table 'turismo.destination' doesn't exist`:**
+> é a caixa do nome da tabela. O MariaDB do Windows guarda nomes em minúsculas
+> (`lower_case_table_names=1`), o do Linux os trata como case-sensitive, e o
+> Prisma gera a migração no padrão do banco local. Aconteceu uma vez e já está
+> corrigido no repositório. Para destravar uma VPS que parou nisso:
+>
+> ```bash
+> cd /var/www/turismo
+> git pull --ff-only origin main
+> npx prisma migrate resolve --rolled-back 20260920165048_urls_mais_longas
+> ./deploy/deploy.sh
+> ```
+>
+> O `resolve --rolled-back` só apaga o registro de falha; a migração não chegou
+> a alterar nada, então não há nada a desfazer no banco. Daí em diante,
+> `npm run db:migrate` roda `npm run db:check`, que barra o problema antes do
+> commit.
+
 ### 3. Cadastrar os 11 destinos no banco de produção
 
 O banco da VPS é outro, então o seed precisa rodar lá também:
@@ -488,6 +506,7 @@ O script faz tudo na ordem certa (`git pull` → `npm ci` → gerar cliente → 
 | **`/admin` dá erro 500** | `SESSION_SECRET` ausente no `.env` da VPS | passo 1 da Parte 16 |
 | **Login não entra, volta pro formulário** | cookie de sessão é `Secure` em produção e exige HTTPS | acessar pelo domínio `https://`, nunca pelo IP |
 | **Perdi a senha do painel** | — | `npm run admin:create -- "Nome" mesmo@email.com` redefine |
+| **Migração falha com `Table 'turismo.destination' doesn't exist`** | caixa do nome da tabela (veja abaixo) | corrigir o `.sql`, `prisma migrate resolve --rolled-back <nome>`, reimplantar |
 | **Abre no PC mas não no celular** | celular força HTTPS e não há certificado | é o que a Parte 13 resolve |
 | **404 ao abrir pelo IP** | esperado desde a Parte 13 | usar https://147-93-95-29.nip.io |
 | **HTTPS parou de funcionar** | certificado não renovou | `sudo certbot renew --dry-run` para diagnosticar |
